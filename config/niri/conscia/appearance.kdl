@@ -1,0 +1,13 @@
+// Generated from the DMS wallpaper palette by update-focus-gradient.py.
+layout {
+    focus-ring {
+        active-gradient from="#13a9f5" to="#9483f4" angle=45 in="oklch shorter hue"
+        inactive-color "#5a7899"
+        urgent-color "#ff716c"
+    }
+    border {
+        active-gradient from="#13a9f5" to="#9483f4" angle=45 in="oklch shorter hue"
+        inactive-color "#5a7899"
+        urgent-color "#ff716c"
+    }
+}

@@ -1,0 +1,25 @@
+# Build from the ConsciaDesktop checkout; source trees live only in makepkg's BUILDDIR.
+pkgname=conscia-desktop
+_project=$(cd -- "$startdir/../.." && pwd)
+pkgver=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$_project/versions.lock")
+pkgrel=1
+pkgdesc='Conscia niri compositor and DMS shell with pinned compatible fork revisions'
+arch=('x86_64')
+url='https://github.com/Aegon8719/ConsciaDesktop'
+license=('GPL-3.0-or-later' 'MIT')
+depends=(niri dms-shell quickshell matugen python
+         xwayland-satellite xdg-desktop-portal-gnome xdg-desktop-portal-gtk
+         gnome-keyring accountsservice polkit networkmanager pipewire pipewire-pulse wireplumber
+         alacritty firefox dolphin archlinux-xdg-menu brightnessctl playerctl wl-clipboard wtype cava
+         qt6-multimedia qt6ct breeze breeze-icons noto-fonts noto-fonts-cjk noto-fonts-emoji)
+makedepends=(git rust go clang pkgconf libinput libxkbcommon libdisplay-info seatd
+             libpipewire pango cairo mesa wayland)
+options=('!debug' '!strip')
+
+build() {
+    python "$_project/scripts/build.py" --work "$srcdir/forks" --output "$srcdir/payload"
+}
+
+package() {
+    cp -a "$srcdir/payload/." "$pkgdir/"
+}
