@@ -7,7 +7,7 @@ pkgdesc='Conscia niri compositor and DMS shell with pinned compatible fork revis
 arch=('x86_64')
 url='https://github.com/Aegon8719/ConsciaDesktop'
 license=('GPL-3.0-or-later' 'MIT')
-depends=(niri dms-shell quickshell matugen python
+depends=(niri dms-shell quickshell matugen python gdk-pixbuf2 librsvg
          xwayland-satellite xdg-desktop-portal-gnome xdg-desktop-portal-gtk
          gnome-keyring accountsservice polkit networkmanager pipewire pipewire-pulse wireplumber
          alacritty firefox dolphin archlinux-xdg-menu brightnessctl playerctl wl-clipboard wtype cava

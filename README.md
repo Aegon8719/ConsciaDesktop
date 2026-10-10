@@ -31,6 +31,7 @@ bash install.sh
 也可直接复制当前 ConsciaDesktop 文件夹到新电脑，执行 `bash install.sh`。
 安装器执行完整的 pacman 系统更新，安装依赖，从 GitHub 获取锁定源码并编译。
 Rust、Go 和构建工具由依赖安装流程提供；Go 可自动获取源码要求的工具链。
+小窗应用图标所需的 GdkPixbuf 和 SVG 解码支持由 `gdk-pixbuf2`、`librsvg` 软件包提供。
 不运行测试套件或桌面配置验证，不自动注销或重启。
 
 安装后自行重启，在登录界面选择 **Conscia**。
@@ -110,7 +111,7 @@ bash uninstall.sh
 
 锁定版本为：
 
-- [niri 54ccc43](https://github.com/Aegon8719/niri/commit/54ccc43ffe725f1db4dbc0b732299c156d35cdc3)
+- [niri 20ebd0e](https://github.com/Aegon8719/niri/commit/20ebd0e6f2e74d35b4a979f372b2e739e3ec3497)
 - [DankMaterialShell 40f05bc](https://github.com/Aegon8719/DankMaterialShell/commit/40f05bc197f8205559979fee347bac428c5c66ce)
 
 将当前电脑的桌面偏好重新保存为默认配置：
