@@ -17,6 +17,19 @@ ConsciaDesktop/
 └── .github/workflows/      # Arch 构建、Artifacts 和标签 Release
 ```
 
+## 默认桌面与交互
+
+- 使用 Conscia 主区域与小窗列布局，支持 Dwindle 分屏、内侧加入、组内图标行、连续滚动吸附和向外关闭动画。
+- 单应用工作区不允许最小化到小窗列或最大化；最大化保留焦点高亮、圆角和边框留白。
+- `Super+F`／`Super+M` 最大化当前应用；`Super+Ctrl+F` 展开／恢复整个分屏组并保留组内分割；`Super+Shift+F` 全屏。
+- 触屏、触控板三指上下滑动切换工作区，三指张开／捏合展开／恢复整个分屏组，四指捏合／张开显示／退出桌面；`Super+D` 切换桌面。
+- 小窗左键提升、右键关闭、Super+左键加入分屏。触屏单指滚动小窗列，触控板使用二指。
+- DMS 使用 island，中央顺序为搜索、通知、剪贴板、时钟、媒体；圆形和胶囊形组件统一边距，CPU／内存合并显示。
+- 时间格式为 `yyyy/MM/dd HH:mm:ss`，使用性能数字同款字体和固定宽度。日历和媒体直接显示内容，外部空白点击关闭，弹窗主色描边关闭。
+- 状态栏空白区域仅鼠标滚轮切换工作区；触屏向内扫动打开组件，工作区部件打开概览。中央空白点击不打开弹窗。
+
+完整 Touch、TouchPad、KeyBoard Shortcuts、Mouse Click 交互见 [niri 项目说明](https://github.com/Aegon8719/niri)，面板实现见 [DMS 项目说明](https://github.com/Aegon8719/DankMaterialShell)。默认配置用于首次安装；已有用户配置由更新流程保留。
+
 ## 全新安装
 
 在已安装并联网的系统中，以有 sudo 权限的普通用户运行：
@@ -27,7 +40,6 @@ cd ConsciaDesktop
 bash install.sh
 ```
 
-仓库需先推送到上述地址，这里不包含自动创建或推送 GitHub 仓库的操作。
 也可直接复制当前 ConsciaDesktop 文件夹到新电脑，执行 `bash install.sh`。
 安装器执行完整的 pacman 系统更新，安装依赖，从 GitHub 获取锁定源码并编译。
 Rust、Go 和构建工具由依赖安装流程提供；Go 可自动获取源码要求的工具链。
@@ -47,7 +59,6 @@ bash install.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
 
 软件包由 pacman 安装；不要另外直接安装该软件包后再运行首次安装流程，
 否则会缺少本用户的配置基线和回退记录。脚本拒绝接管这种无记录安装。
-本安装器不自动接管旧的 `/opt/conscia` 实验安装；旧安装需先恢复其配置与程序链接。
 
 ## 更新与回退
 
@@ -100,7 +111,7 @@ bash uninstall.sh
 
 没有设置 XDG 变量时，分别使用 `~/.config`、`~/.local/share`、`~/.local/state`、`~/.cache`。
 构建完成后可以删除构建缓存；不要删除状态目录中的旧软件包和基线，回退、卸载需要它们。
-安装目录不再依赖 Git checkout，可将本仓库放在任意位置。
+安装目录独立于 Git checkout，可将本仓库放在任意位置。
 
 ## 维护版本锁与配置
 
@@ -111,8 +122,8 @@ bash uninstall.sh
 
 锁定版本为：
 
-- [niri 20ebd0e](https://github.com/Aegon8719/niri/commit/20ebd0e6f2e74d35b4a979f372b2e739e3ec3497)
-- [DankMaterialShell 40f05bc](https://github.com/Aegon8719/DankMaterialShell/commit/40f05bc197f8205559979fee347bac428c5c66ce)
+- [niri 4210b8b](https://github.com/Aegon8719/niri/commit/4210b8be8d9cd43b976389a1f02c9668d406a02b)
+- [DankMaterialShell 0b975d2](https://github.com/Aegon8719/DankMaterialShell/commit/0b975d2603ca8ef805cf6d1c11211066aa14779c)
 
 将当前电脑的桌面偏好重新保存为默认配置：
 
@@ -146,4 +157,4 @@ python3 scripts/package-installer.py
 
 GitHub Actions 在手动触发时构建并上传 Artifacts；推送 `v*` 标签时，
 在构建成功后将 Arch 软件包和 `.run` 安装器发布到 GitHub Release。
-工作流仅构建，不运行测试；本次迁移也没有在全新 EndeavourOS 上实装验证。
+工作流构建 Arch 软件包及在线安装器，不运行测试。
