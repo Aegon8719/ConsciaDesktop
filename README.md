@@ -139,8 +139,8 @@ bash uninstall.sh
 
 锁定版本为：
 
-- [niri de6270f](https://github.com/Aegon8719/niri/commit/de6270f1a2b2bb764b4cf71db6d6ea00f86408c2)
-- [DankMaterialShell 4624295](https://github.com/Aegon8719/DankMaterialShell/commit/462429571323cffd6d7f030ca305abb35f6509c6)
+- [niri 3fbf0ad](https://github.com/Aegon8719/niri/commit/3fbf0add9939520b8559800038054c4d86867939)
+- [DankMaterialShell 017fa9a](https://github.com/Aegon8719/DankMaterialShell/commit/017fa9a1c543b79f25af454f702f4ff15b79a812)
 
 将当前电脑的桌面偏好重新保存为默认配置：
 
@@ -148,8 +148,8 @@ bash uninstall.sh
 python3 scripts/capture-config.py
 ```
 
-捕获布局、面板、快捷键、字体、光标、动态配色和壁纸路径，并打包所引用的图片。
-用户名和图片路径在目标电脑部署时重写。
+捕获布局、面板、快捷键、字体、光标和主题偏好；不捕获壁纸路径、图片或动态配色缓存。
+首次安装使用 DMS 自身默认壁纸设置，之后由用户设置并同步。
 不捕获浏览器账号、Wi-Fi 凭据、剪贴板和启动器查询历史。
 显示器相关偏好保持原值，新机器必要时可自行调整。
 

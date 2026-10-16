@@ -5,24 +5,21 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
-import shlex
 import shutil
 import subprocess
-import tempfile
 
 root = Path(__file__).resolve().parent.parent
 home = Path.home()
 config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
 cache = Path(os.environ.get("XDG_CACHE_HOME", home / ".cache"))
-data = Path(os.environ.get("XDG_DATA_HOME", home / ".local/share"))
 store = state / "conscia-desktop"
 database = store / "installation.json"
 pending = store / "pending.json"
 owner = Path("/var/lib/conscia-desktop/owner")
 units = config / "systemd/user"
 managed = [config / "niri", config / "DankMaterialShell", state / "DankMaterialShell/session.json",
-           cache / "DankMaterialShell/dms-colors.json", data / "conscia/assets",
+           cache / "DankMaterialShell/dms-colors.json",
            units / "niri.service.d/90-conscia-local.conf", units / "dms.service.d/90-conscia-local.conf",
            units / "conscia-focus-gradient.service", units / "conscia-focus-gradient.path",
            units / "niri.service.wants/dms.service",
@@ -124,6 +121,14 @@ def configure_greeter():
     run("sudo", "systemctl", "enable", "greetd.service")
     run("sudo", "systemctl", "set-default", "graphical.target")
 
+def set_owner(installed):
+    if not installed:
+        run("sudo", "rm", "-f", owner)
+        return
+    identity = store / "owner"
+    identity.write_text(str(os.getuid()) + "\n")
+    run("sudo", "install", "-Dm644", identity, owner)
+
 def recover(transaction):
     stop_gradient()
     old = transaction["old"]
@@ -139,12 +144,9 @@ def recover(transaction):
         run("sudo", "systemctl", "set-default", transaction["default_target"])
     if old:
         save(database, old)
-        identity = store / "owner"
-        identity.write_text(str(os.getuid()) + "\n")
-        run("sudo", "install", "-Dm644", identity, owner)
     else:
         database.unlink(missing_ok=True)
-        run("sudo", "rm", "-f", str(owner))
+    set_owner(bool(old))
     resume_gradient()
     pending.unlink(missing_ok=True)
 
@@ -203,12 +205,7 @@ if args.action in ("install", "update"):
             raise SystemExit("--package 必须指向 conscia-desktop Arch 软件包。")
     else:
         work = cache / "conscia-desktop/builds" / stamp
-        work.mkdir(parents=True)
-        makepkg_config = work / "makepkg.conf"
-        makepkg_config.write_text("source /etc/makepkg.conf\n" +
-            f"BUILDDIR={shlex.quote(str(work / 'build'))}\nPKGDEST={shlex.quote(str(work))}\n")
-        run("makepkg", "--config", makepkg_config, "--syncdeps", "--noconfirm", "--nocheck",
-            cwd=root / "packages/arch")
+        run("bash", root / "scripts/build-package.sh", work, work)
         packages = list(work.glob("conscia-desktop-*.pkg.tar.*"))
         package = next(path for path in packages if not path.name.endswith(".sig"))
     cached = store / "packages" / stamp / package.name
@@ -219,14 +216,12 @@ if args.action in ("install", "update"):
 transaction_dir = store / "snapshots" / stamp
 stop_gradient()
 snapshot(transaction_dir)
-transaction = {"old": old, "snapshot": str(transaction_dir), "enabled_sddm": False,
-               "sddm_enabled": output("systemctl", "is-enabled", "--quiet", "sddm.service").returncode == 0,
-               "default_target": output("systemctl", "get-default").stdout.strip()}
+transaction = {"old": old, "snapshot": str(transaction_dir), "default_target": output("systemctl", "get-default").stdout.strip()}
 save(pending, transaction)
 try:
     if args.action in ("install", "update"):
         run("sudo", "pacman", "-U", "--noconfirm", package)
-        record = old or {"history": [], "baseline": str(transaction_dir), "enabled_sddm": False,
+        record = old or {"history": [], "baseline": str(transaction_dir),
                          "default_target": transaction["default_target"]}
         if args.action == "install":
             run("python3", "/usr/lib/conscia/scripts/deploy-profile.py",
@@ -240,9 +235,7 @@ try:
                 record["greeter"] = transaction["greeter"]
                 save(pending, transaction)
                 configure_greeter()
-            identity = store / "owner"
-            identity.write_text(str(os.getuid()) + "\n")
-            run("sudo", "install", "-Dm644", identity, owner)
+            set_owner(True)
         record = dict(record, history=[*record["history"], str(package)])
         save(database, record)
     elif args.action == "rollback":
@@ -255,13 +248,14 @@ try:
             transaction["greeter"] = snapshot_greeter(transaction_dir)
             save(pending, transaction)
             restore_greeter(old["greeter"])
-        if old["enabled_sddm"] and Path("/etc/systemd/system/display-manager.service").resolve().name == "sddm.service":
+        if old.get("enabled_sddm") and Path("/etc/systemd/system/display-manager.service").resolve().name == "sddm.service":
             transaction["enabled_sddm"] = True
+            transaction["sddm_enabled"] = output("systemctl", "is-enabled", "--quiet", "sddm.service").returncode == 0
             save(pending, transaction)
             run("sudo", "systemctl", "disable", "sddm.service")
             run("sudo", "systemctl", "set-default", old["default_target"])
         database.unlink()
-        run("sudo", "rm", "-f", owner)
+        set_owner(False)
     resume_gradient()
     pending.unlink()
 except Exception:
