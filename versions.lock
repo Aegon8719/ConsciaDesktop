@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "version": "2026.10.12.1",
+  "version": "2026.10.16.1",
   "niri": {
     "repository": "https://github.com/Aegon8719/niri.git",
-    "revision": "4210b8be8d9cd43b976389a1f02c9668d406a02b"
+    "revision": "de6270f1a2b2bb764b4cf71db6d6ea00f86408c2"
   },
   "dms": {
     "repository": "https://github.com/Aegon8719/DankMaterialShell.git",
-    "revision": "0b975d2603ca8ef805cf6d1c11211066aa14779c"
+    "revision": "462429571323cffd6d7f030ca305abb35f6509c6"
   }
 }

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Capture Conscia preferences only; never vendor compositor or shell sources."""
 from datetime import datetime
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,33 +11,18 @@ root = Path(__file__).resolve().parent.parent
 home = Path.home()
 config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
-cache = Path(os.environ.get("XDG_CACHE_HOME", home / ".cache"))
 with tempfile.TemporaryDirectory(prefix="conscia-config-") as directory:
     profile = Path(directory) / "profile"
-    assets = profile / "assets"
-    assets.mkdir(parents=True)
-    asset_map = {}
+    profile.mkdir(parents=True)
 
     def portable(value):
         if isinstance(value, str):
-            original = value
-            raw = value.removeprefix("file://")
-            path = Path(raw)
-            if path.is_absolute() and path.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif", ".avif"):
-                if path.is_file():
-                    if raw not in asset_map:
-                        digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
-                        name = digest + path.suffix.lower()
-                        shutil.copy2(path, assets / name)
-                        asset_map[raw] = "@CONSCIA_DATA@/assets/" + name
-                    value = ("file://" if original.startswith("file://") else "") + asset_map[raw]
-                else:
-                    print(f"资源不存在，保留待迁移路径：{raw}")
             return value.replace(str(home), "@CONSCIA_HOME@")
         if isinstance(value, list):
             return [portable(item) for item in value]
         if isinstance(value, dict):
-            return {portable(key): portable(item) for key, item in value.items()}
+            return {portable(key): portable(item) for key, item in value.items()
+                    if "wallpaper" not in key.lower() or key == "blurWallpaperOnOverview"}
         return value
 
     # Capture active preferences, not historical backups, clipboard data or account state.
@@ -65,19 +49,16 @@ with tempfile.TemporaryDirectory(prefix="conscia-config-") as directory:
     for key in ("launcherQueryHistory", "lastPlayerIdentity"):
         session.pop(key, None)
     (profile / "session.json").write_text(json.dumps(portable(session), ensure_ascii=False, indent=2) + "\n")
-    palette = cache / "DankMaterialShell/dms-colors.json"
-    if palette.exists():
-        shutil.copy2(palette, profile / palette.name)
     manifest = {
         "created": datetime.now().astimezone().isoformat(),
         "target": "EndeavourOS / Arch Linux x86_64",
         "source": "Conscia desktop preferences",
-        "assets": list(asset_map.values()),
-        "tests_run": False,
     }
     (profile / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 
     destination = root / "config"
+    shutil.rmtree(destination / "assets", ignore_errors=True)
+    (destination / "dms-colors.json").unlink(missing_ok=True)
     for source in profile.iterdir():
         target = destination / source.name
         if source.is_dir():

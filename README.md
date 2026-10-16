@@ -11,7 +11,7 @@ ConsciaDesktop/
 ├── rollback.sh
 ├── uninstall.sh
 ├── versions.lock
-├── config/                 # niri、DMS、壁纸、会话偏好及调色板
+├── config/                 # niri、DMS、会话偏好及登录配置
 ├── packages/arch/          # PKGBUILD、会话入口
 ├── scripts/                # 获取源码、构建、配置部署、生命周期、安装包生成
 └── .github/workflows/      # Arch 构建、Artifacts 和标签 Release
@@ -26,11 +26,16 @@ ConsciaDesktop/
 - 小窗左键提升、右键关闭、Super+左键加入分屏。触屏单指滚动小窗列，触控板使用二指。
 - DMS 使用 island，中央顺序为搜索、通知、剪贴板、时钟、媒体；圆形和胶囊形组件统一边距，CPU／内存合并显示。
 - 时间格式为 `yyyy/MM/dd HH:mm:ss`，使用性能数字同款字体和固定宽度。日历和媒体直接显示内容，外部空白点击关闭，弹窗主色描边关闭。
-- 状态栏空白区域仅鼠标滚轮切换工作区；触屏向内扫动打开组件，工作区部件打开概览。中央空白点击不打开弹窗。
+- 状态栏空白区域仅鼠标滚轮切换工作区；触屏向内扫动仅展开左右两侧组件，工作区部件打开概览。中央组件只响应触屏点击，中央空白点击不打开弹窗。
 
 完整 Touch、TouchPad、KeyBoard Shortcuts、Mouse Click 交互见 [niri 项目说明](https://github.com/Aegon8719/niri)，面板实现见 [DMS 项目说明](https://github.com/Aegon8719/DankMaterialShell)。默认配置用于首次安装；已有用户配置由更新流程保留。
 
 ## 全新安装
+
+支持从没有桌面环境的 Arch Linux／EndeavourOS x86_64 基础系统安装。
+系统需已能启动并联网，具有 systemd、pacman 和有 sudo 权限的普通用户；
+在本机 TTY 登录该用户后运行。安装器不负责分区、基础系统安装或引导器配置，
+目前不支持将同一安装脚本用于 Fedora、Debian 等其他发行版。
 
 在已安装并联网的系统中，以有 sudo 权限的普通用户运行：
 
@@ -47,7 +52,18 @@ Rust、Go 和构建工具由依赖安装流程提供；Go 可自动获取源码�
 不运行测试套件或桌面配置验证，不自动注销或重启。
 
 安装后自行重启，在登录界面选择 **Conscia**。
-没有登录管理器时会安装并启用 SDDM；已有的登录管理器会保留。
+没有登录管理器时会自动安装并启用 **greetd + DMS Greeter**，无需预装 KDE、GNOME 或 SDDM。
+安装器优先使用软件仓库中的 `dms-greeter`；仓库没有该包时，通过普通用户的
+`makepkg --nocheck` 从 AUR `greetd-dms-greeter-bin` 构建并安装二进制发行包，不需要 yay／paru。
+`--package` 安装同样包含登录界面的配置步骤。已有登录管理器则保留，更新不会替换它。
+登录界面使用独立的 `greeter` 系统账户和系统 niri，不依赖用户家目录中的编译产物；
+登录后选择 **Conscia**，进入项目版本的 niri 与 DMS 桌面。
+桌面内 `Super+L` 默认调用 DMS 锁屏。因此从无桌面系统首次安装后，登录和锁屏均使用 DMS。
+安装时自动以安装用户执行 `dms-greeter sync --yes`，使用 DMS 自带的同步机制，
+让登录界面跟随该用户的桌面壁纸与主题设置；所需账户组和文件读取权限由 DMS Greeter 配置。
+ConsciaDesktop 不指定默认壁纸图片，也不携带自定义壁纸或动态配色缓存，首次启动采用 DMS 自身默认设置。
+之后在 DMS 中更换壁纸，登录界面通过同步的用户配置跟随，不固定到某个图片路径。
+配置只启用下次启动服务，不立即启动登录管理器或打断 TTY 会话。
 也可以在 TTY 运行 `conscia-session`。NVIDIA 驱动交由 EndeavourOS 自身管理。
 维护已有 niri/DMS 桌面时，先注销，再从本机 TTY 运行这些脚本。
 
@@ -94,8 +110,9 @@ bash uninstall.sh
 ```
 
 卸载 `conscia-desktop` 软件包，恢复首次安装前的个人配置和服务覆盖文件。
-卸载前的最新配置也会另存一份。自动启用的 SDDM 会在仍由它管理登录时取消启用，
-恢复首次安装前的默认启动目标。依赖软件包不自动删除，避免影响其他桌面。
+卸载前的最新配置也会另存一份。自动启用的 DMS Greeter 会在仍由 greetd 管理登录时取消启用，
+恢复配置前的 greetd 配置、启用状态和默认启动目标；中断事务恢复也包含这些状态。
+如果之后自行切换了登录管理器，卸载不会替换它。依赖软件包和 greeter 系统账户不自动删除，避免影响其他桌面。
 不要在多个用户下分别管理同一套系统安装；脚本会记录并检查安装用户。
 
 ## 文件与缓存
@@ -105,7 +122,7 @@ bash uninstall.sh
 | 当前程序及配套脚本 | `/usr/lib/conscia/`，由 pacman 管理 |
 | 登录入口 | `/usr/bin/conscia-session` |
 | 用户配置 | `$XDG_CONFIG_HOME/niri/`、`$XDG_CONFIG_HOME/DankMaterialShell/` |
-| 壁纸 | `$XDG_DATA_HOME/conscia/assets/` |
+| 壁纸设置 | 由 DMS 管理；安装包不携带壁纸图片 |
 | 安装记录、旧软件包、配置快照 | `$XDG_STATE_HOME/conscia-desktop/` |
 | 下载的源码、编译中间文件 | `$XDG_CACHE_HOME/conscia-desktop/` |
 
@@ -122,8 +139,8 @@ bash uninstall.sh
 
 锁定版本为：
 
-- [niri 4210b8b](https://github.com/Aegon8719/niri/commit/4210b8be8d9cd43b976389a1f02c9668d406a02b)
-- [DankMaterialShell 0b975d2](https://github.com/Aegon8719/DankMaterialShell/commit/0b975d2603ca8ef805cf6d1c11211066aa14779c)
+- [niri de6270f](https://github.com/Aegon8719/niri/commit/de6270f1a2b2bb764b4cf71db6d6ea00f86408c2)
+- [DankMaterialShell 4624295](https://github.com/Aegon8719/DankMaterialShell/commit/462429571323cffd6d7f030ca305abb35f6509c6)
 
 将当前电脑的桌面偏好重新保存为默认配置：
 

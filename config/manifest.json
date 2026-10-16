@@ -1,9 +1,5 @@
 {
   "created": "2026-10-09T21:59:48.462207+08:00",
   "target": "EndeavourOS / Arch Linux x86_64",
-  "source": "Conscia desktop preferences",
-  "assets": [
-    "@CONSCIA_DATA@/assets/15aa9e84f546c5b9.jpg"
-  ],
-  "tests_run": false
+  "source": "Conscia desktop preferences"
 }

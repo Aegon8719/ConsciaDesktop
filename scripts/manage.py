@@ -86,6 +86,44 @@ def resume_gradient():
         if (units / ("default.target.wants/conscia-focus-gradient." + suffix)).exists():
             run("systemctl", "--user", "start", "conscia-focus-gradient." + suffix)
 
+def install_greeter_package(work):
+    run("sudo", "pacman", "-S", "--needed", "--noconfirm", "greetd", "quickshell")
+    if Path("/usr/bin/dms-greeter").is_file():
+        return
+    if output("pacman", "-Si", "dms-greeter").returncode == 0:
+        run("sudo", "pacman", "-S", "--needed", "--noconfirm", "dms-greeter")
+        return
+    run("git", "clone", "--depth=1", "https://aur.archlinux.org/greetd-dms-greeter-bin.git", work)
+    run("makepkg", "--syncdeps", "--install", "--needed", "--noconfirm", "--nocheck", cwd=work)
+
+def snapshot_greeter(destination):
+    backup = destination / "greetd-config.toml"
+    exists = os.path.lexists("/etc/greetd/config.toml")
+    if exists:
+        run("sudo", "cp", "-a", "/etc/greetd/config.toml", backup)
+    return {"config_exists": exists, "backup": str(backup),
+            "enabled": output("systemctl", "is-enabled", "--quiet", "greetd.service").returncode == 0,
+            "default_target": output("systemctl", "get-default").stdout.strip()}
+
+def restore_greeter(record):
+    run("sudo", "systemctl", "disable", "greetd.service")
+    run("sudo", "rm", "-f", "/etc/greetd/config.toml")
+    if record["config_exists"]:
+        run("sudo", "cp", "-a", record["backup"], "/etc/greetd/config.toml")
+    if record["enabled"]:
+        run("sudo", "systemctl", "enable", "greetd.service")
+    run("sudo", "systemctl", "set-default", record["default_target"])
+
+def configure_greeter():
+    # Keep the login compositor independent of the user's home and session config.
+    run("sudo", "systemd-sysusers", root / "config/greeter-sysusers.conf")
+    run("sudo", "install", "-d", "-o", "greeter", "-g", "greeter", "-m", "0755",
+        "/var/cache/dms-greeter", "/var/lib/greeter")
+    run("sudo", "install", "-Dm644", root / "config/greetd.toml", "/etc/greetd/config.toml")
+    run("/usr/bin/dms-greeter", "sync", "--yes")
+    run("sudo", "systemctl", "enable", "greetd.service")
+    run("sudo", "systemctl", "set-default", "graphical.target")
+
 def recover(transaction):
     stop_gradient()
     old = transaction["old"]
@@ -94,6 +132,8 @@ def recover(transaction):
     elif output("pacman", "-Q", "conscia-desktop").returncode == 0:
         run("sudo", "pacman", "-R", "--noconfirm", "conscia-desktop")
     restore(Path(transaction["snapshot"]))
+    if transaction.get("greeter"):
+        restore_greeter(transaction["greeter"])
     if transaction.get("enabled_sddm"):
         run("sudo", "systemctl", "enable" if transaction["sddm_enabled"] else "disable", "sddm.service")
         run("sudo", "systemctl", "set-default", transaction["default_target"])
@@ -148,9 +188,14 @@ if args.action == "rollback" and len(old["history"]) < 2:
     raise SystemExit("没有可回退的旧软件包；至少需要完成一次更新。")
 
 stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+needs_greeter = args.action == "install" and not os.path.lexists("/etc/systemd/system/display-manager.service")
 package = None
 if args.action in ("install", "update"):
     run("sudo", "pacman", "-Syu", "--needed", "--noconfirm", "base-devel", "git", "python")
+    if needs_greeter:
+        greeter_work = cache / "conscia-desktop/greeter" / stamp
+        greeter_work.parent.mkdir(parents=True, exist_ok=True)
+        install_greeter_package(greeter_work)
     if args.package:
         package = args.package.resolve(strict=True)
         info = output("pacman", "-Qp", str(package))
@@ -190,12 +235,11 @@ try:
             run("systemctl", "--user", "add-wants", "niri.service", "dms.service")
             run("systemctl", "--user", "enable", "conscia-focus-gradient.path", "conscia-focus-gradient.service")
             run("systemctl", "--user", "enable", "pipewire.socket", "pipewire-pulse.socket", "wireplumber.service")
-            if not Path("/etc/systemd/system/display-manager.service").exists():
-                run("sudo", "pacman", "-S", "--needed", "--noconfirm", "sddm", "xorg-server")
-                transaction["enabled_sddm"] = record["enabled_sddm"] = True
+            if needs_greeter:
+                transaction["greeter"] = snapshot_greeter(transaction_dir)
+                record["greeter"] = transaction["greeter"]
                 save(pending, transaction)
-                run("sudo", "systemctl", "enable", "sddm.service")
-                run("sudo", "systemctl", "set-default", "graphical.target")
+                configure_greeter()
             identity = store / "owner"
             identity.write_text(str(os.getuid()) + "\n")
             run("sudo", "install", "-Dm644", identity, owner)
@@ -207,6 +251,10 @@ try:
     else:
         run("sudo", "pacman", "-R", "--noconfirm", "conscia-desktop")
         restore(Path(old["baseline"]))
+        if old.get("greeter") and Path("/etc/systemd/system/display-manager.service").resolve().name == "greetd.service":
+            transaction["greeter"] = snapshot_greeter(transaction_dir)
+            save(pending, transaction)
+            restore_greeter(old["greeter"])
         if old["enabled_sddm"] and Path("/etc/systemd/system/display-manager.service").resolve().name == "sddm.service":
             transaction["enabled_sddm"] = True
             save(pending, transaction)

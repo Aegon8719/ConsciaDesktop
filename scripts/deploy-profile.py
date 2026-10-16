@@ -41,9 +41,6 @@ def write(path, content, label):
     temporary.write_text(content)
     os.replace(temporary, path)
 
-assets = data / "conscia/assets"
-assets.mkdir(parents=True, exist_ok=True)
-shutil.copytree(profile / "assets", assets, dirs_exist_ok=True)
 for name in ("niri", "DankMaterialShell"):
     target = config / name
     save_old(target, "config/" + name)
@@ -70,8 +67,10 @@ for name in ("niri", "DankMaterialShell"):
 
 session = replace(json.loads((profile / "session.json").read_text()))
 write(state / "DankMaterialShell/session.json", json.dumps(session, ensure_ascii=False, indent=2) + "\n", "state/session.json")
-if (profile / "dms-colors.json").exists():
-    write(cache / "DankMaterialShell/dms-colors.json", (profile / "dms-colors.json").read_text(), "cache/dms-colors.json")
+# Let DMS derive its palette from its own wallpaper settings on first launch.
+palette = cache / "DankMaterialShell/dms-colors.json"
+save_old(palette, "cache/dms-colors.json")
+palette.unlink(missing_ok=True)
 
 units = config / "systemd/user"
 for name in ("niri", "dms"):
