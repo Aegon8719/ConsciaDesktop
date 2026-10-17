@@ -3,7 +3,9 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 [[ $EUID != 0 ]] || { echo '请以普通用户在 Arch 构建环境中运行。' >&2; exit 1; }
 [[ -e /etc/arch-release && $(uname -m) == x86_64 ]] || { echo '需要 Arch x86_64 构建环境。' >&2; exit 1; }
-work=${1:-$(mktemp -d "${TMPDIR:-/tmp}/conscia-offline.XXXXXX")}
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/conscia-desktop"
+mkdir -p "$cache_root"
+work=${1:-$(mktemp -d "$cache_root/offline.XXXXXX")}
 mkdir -p "$work" "$root/dist"
 work=$(cd "$work" && pwd)
 version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$root/versions.lock")

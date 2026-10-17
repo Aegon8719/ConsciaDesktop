@@ -38,13 +38,15 @@ for name in ("niri", "dms"):
     run("git", "submodule", "update", "--init", "--recursive", cwd=checkout)
 
 os.environ.setdefault("CARGO_BUILD_JOBS", "1")
+target = args.work.resolve() / "target"
+os.environ["CARGO_TARGET_DIR"] = str(target)
 os.environ["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
 os.environ["GOTOOLCHAIN"] = "auto"
 run("cargo", "build", "--release", "--locked", cwd=args.work / "niri")
 run("make", "build", "VERSION=" + lock["version"], "COMMIT=" + lock["dms"]["revision"], cwd=args.work / "dms")
 destination = args.output / "usr/lib/conscia"
 (destination / "bin").mkdir(parents=True, exist_ok=True)
-for source, name in ((args.work / "niri/target/release/niri", "niri"),
+for source, name in ((target / "release/niri", "niri"),
                      (args.work / "dms/core/bin/dms", "dms"),
                      (args.work / "niri/resources/niri-session", "niri-session")):
     shutil.copy2(source, destination / "bin" / name)

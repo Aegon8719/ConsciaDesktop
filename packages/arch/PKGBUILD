@@ -14,7 +14,8 @@ depends=(niri dms-shell quickshell matugen python gdk-pixbuf2 librsvg
          qt6-multimedia qt6ct breeze breeze-icons noto-fonts noto-fonts-cjk noto-fonts-emoji)
 makedepends=(git rust go clang pkgconf libinput libxkbcommon libdisplay-info seatd
              libpipewire pango cairo mesa wayland)
-options=('!debug' '!strip')
+# Rust keeps its own ThinLTO; GCC LTO objects cannot be linked by Rust's lld.
+options=('!debug' '!strip' '!lto')
 
 build() {
     python "$_project/scripts/build.py" --work "$srcdir/forks" --output "$srcdir/payload"
