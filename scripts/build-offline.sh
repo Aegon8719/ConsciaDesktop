@@ -20,7 +20,11 @@ if ! compgen -G "$bundle/greeter/*.pkg.tar.zst" >/dev/null; then
     if [[ ! -d "$work/greeter/.git" ]]; then
         git clone --depth=1 https://aur.archlinux.org/greetd-dms-greeter-bin.git "$work/greeter"
     fi
-    (cd "$work/greeter" && PKGDEST="$bundle/greeter" makepkg --syncdeps --noconfirm --nocheck)
+    cat > "$work/greeter-makepkg.conf" <<'EOF'
+source /etc/makepkg.conf
+OPTIONS=("${OPTIONS[@]/#debug/!debug}")
+EOF
+    (cd "$work/greeter" && PKGDEST="$bundle/greeter" makepkg --config "$work/greeter-makepkg.conf" --syncdeps --noconfirm --nocheck)
 fi
 
 # Resolve against an empty installed-package database, so builder dependencies
@@ -40,6 +44,8 @@ PY
 mapfile -t targets < "$bundle/targets.txt"
 mkdir -p "$work/db/local"
 cp -a /var/lib/pacman/sync "$work/db/"
+sudo pacman --dbpath "$work/db" --cachedir /var/cache/pacman/pkg --logfile "$work/download.log" \
+    -Sw --noconfirm "${targets[@]}"
 python3 - "$work/db" "$bundle/repo" "${targets[@]}" <<'PY'
 import base64
 from pathlib import Path
@@ -53,14 +59,11 @@ records = subprocess.check_output([
 for record in records.splitlines():
     filename, signature = record.split(" ", 1)
     cached = Path("/var/cache/pacman/pkg") / filename
-    if cached.is_file() and not (repository / filename).exists():
-        shutil.copy2(cached, repository / filename)
+    shutil.copy2(cached, repository / filename)
     (repository / (filename + ".sig")).write_bytes(base64.b64decode(signature, validate=True))
 PY
-sudo pacman --dbpath "$work/db" --cachedir "$bundle/repo" --logfile "$work/download.log" \
-    -Sw --noconfirm "${targets[@]}"
-sudo chown -R "$(id -u):$(id -g)" "$bundle/repo"
 repo-add "$bundle/repo/conscia-offline.db.tar.gz" "$bundle"/repo/*.pkg.tar.zst
+rm -f "$bundle"/repo/*.old
 for entry in scripts config packages versions.lock README.md install.sh update.sh rollback.sh uninstall.sh; do
     cp -a "$root/$entry" "$bundle/"
 done
