@@ -33,28 +33,29 @@ ConsciaDesktop/
 ## 全新安装
 
 支持从没有桌面环境的 Arch Linux／EndeavourOS x86_64 基础系统安装。
-系统需已能启动并联网，具有 systemd、pacman 和有 sudo 权限的普通用户；
+系统需已能启动，具有 systemd、pacman 和有 sudo 权限的普通用户；
 在本机 TTY 登录该用户后运行。安装器不负责分区、基础系统安装或引导器配置，
 目前不支持将同一安装脚本用于 Fedora、Debian 等其他发行版。
 
-在已安装并联网的系统中，以有 sudo 权限的普通用户运行：
+联网安装直接下载 GitHub Release 中的完整安装包，不在目标机器编译：
 
 ```bash
-git clone https://github.com/Aegon8719/ConsciaDesktop.git
-cd ConsciaDesktop
-bash install.sh
+curl -fLO https://github.com/Aegon8719/ConsciaDesktop/releases/latest/download/ConsciaDesktop-EndeavourOS.run
+bash ConsciaDesktop-EndeavourOS.run
 ```
 
-也可直接复制当前 ConsciaDesktop 文件夹到新电脑，执行 `bash install.sh`。
-安装器执行完整的 pacman 系统更新，安装依赖，从 GitHub 获取锁定源码并编译。
-Rust、Go 和构建工具由依赖安装流程提供；Go 可自动获取源码要求的工具链。
-小窗应用图标所需的 GdkPixbuf 和 SVG 解码支持由 `gdk-pixbuf2`、`librsvg` 软件包提供。
-不运行测试套件或桌面配置验证，不自动注销或重启。
+也可克隆本仓库后运行 `bash install.sh`，下载 `versions.lock` 对应标签的 Release。
+下载入口需要系统已有 curl、tar、zstd 和 sha256sum。完整包包含程序、依赖、登录界面
+和默认配置；联网与离线入口最终执行同一个安装流程。不自动注销或重启。
+小窗图标所需的 GdkPixbuf 和 SVG 解码支持包含在依赖中。
+
+开发者如需在目标系统联网获取源码并编译，显式执行 `bash install.sh --build`。
+该模式会先完整更新 pacman 系统并安装构建工具，仍不运行测试套件。
 
 安装后自行重启，在登录界面选择 **Conscia**。
 没有登录管理器时会自动安装并启用 **greetd + DMS Greeter**，无需预装 KDE、GNOME 或 SDDM。
-安装器优先使用软件仓库中的 `dms-greeter`；仓库没有该包时，通过普通用户的
-`makepkg --nocheck` 从 AUR `greetd-dms-greeter-bin` 构建并安装二进制发行包，不需要 yay／paru。
+Release 已携带 DMS Greeter；仅源码构建或单独 `--package` 安装时，才从仓库或
+AUR `greetd-dms-greeter-bin` 获取，不需要 yay／paru。
 `--package` 安装同样包含登录界面的配置步骤。已有登录管理器则保留，更新不会替换它。
 登录界面使用独立的 `greeter` 系统账户和系统 niri，不依赖用户家目录中的编译产物；
 登录后选择 **Conscia**，进入项目版本的 niri 与 DMS 桌面。
@@ -67,7 +68,7 @@ ConsciaDesktop 不指定默认壁纸图片，也不携带自定义壁纸或动�
 也可以在 TTY 运行 `conscia-session`。NVIDIA 驱动交由 EndeavourOS 自身管理。
 维护已有 niri/DMS 桌面时，先注销，再从本机 TTY 运行这些脚本。
 
-发布版可避免本地编译，使用与项目版本配套的 Arch 软件包：
+开发者也可安装自行构建的 Arch 软件包（此模式仍需联网安装系统依赖）：
 
 ```bash
 bash install.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
@@ -75,6 +76,30 @@ bash install.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
 
 软件包由 pacman 安装；不要另外直接安装该软件包后再运行首次安装流程，
 否则会缺少本用户的配置基线和回退记录。脚本拒绝接管这种无记录安装。
+
+### 完整离线安装包
+
+`ConsciaDesktop-<版本>-EndeavourOS-x86_64-offline.tar.zst` 面向制作时已更新的
+EndeavourOS / Arch x86_64 基础系统：已有 systemd、pacman、有 sudo 权限的普通用户，
+无需预装桌面，也无需在目标机器上联网或编译。
+
+```bash
+tar --zstd -xf ConsciaDesktop-*-EndeavourOS-x86_64-offline.tar.zst
+cd ConsciaDesktop-*-EndeavourOS-x86_64-offline
+bash install-offline.sh
+# 更新既有安装：bash install-offline.sh update
+```
+
+包内含锁定版本的 Conscia 原生软件包、DMS Greeter、桌面及默认应用的递归依赖、
+本地 pacman 软件仓库、配置和安装脚本。`packages.txt` 记录精确包版本，
+`built-at.txt` 记录打包时间，`SHA256SUMS` 用于文件完整性检查。
+官方依赖保留软件包签名；自行构建的软件包随离线包提供。
+安装入口仅使用本地仓库，复用在线安装的配置、登录界面及回退记录流程，
+启用 NetworkManager 供下次启动使用，不自动注销或重启。
+
+这是已有基础系统上的桌面安装包，不是启动 ISO，不包含分区、引导器安装或
+专有显卡驱动。基础系统应与包内依赖快照一致；不能保证任意旧版或另行修改的
+系统可直接安装。NVIDIA 驱动需随目标 EndeavourOS 的内核另行准备。
 
 ## 更新与回退
 
@@ -91,7 +116,8 @@ bash rollback.sh
 ```
 
 更新只替换程序，保留当前用户配置；不会每次覆盖成仓库默认设置。
-`update.sh` 使用当前 checkout 的版本锁，不擅自追踪两个 Fork 的主分支。
+`update.sh` 下载当前 checkout 版本锁对应的 Release；`bash update.sh --build` 才在本机构建。
+也可下载新版 `.run` 后执行 `bash ConsciaDesktop-EndeavourOS.run update`。
 回退恢复成对构建的 niri/DMS 及该版本的配套脚本，不覆盖用户配置，
 不回退 pacman 更新的其他系统依赖。因此历史版本还需与当前系统库兼容。
 
@@ -162,7 +188,7 @@ sudo pacman -Syu --needed base-devel git python
 bash scripts/build-package.sh
 ```
 
-在当前开发电脑生成不含 Fork 源码的单文件在线安装器：
+生成绑定当前版本的轻量 Release 下载入口：
 
 ```bash
 python3 scripts/package-installer.py
@@ -170,8 +196,18 @@ python3 scripts/package-installer.py
 ```
 
 将 `.run` 复制到新电脑后执行 `bash ConsciaDesktop-EndeavourOS.run`。
-它只携带本工程，真正安装时才从 GitHub 下载锁定源码，所以必须联网。
+它下载同一 Release 的完整离线包和校验文件，然后执行包内安装入口；需要先发布对应 Release。
 
 GitHub Actions 在手动触发时构建并上传 Artifacts；推送 `v*` 标签时，
-在构建成功后将 Arch 软件包和 `.run` 安装器发布到 GitHub Release。
-工作流构建 Arch 软件包及在线安装器，不运行测试。
+在构建成功后将完整 `.tar.zst` 包、SHA-256 校验文件和 `.run` 下载入口发布到 GitHub Release。
+所有入口共用同一份构建产物，工作流不运行测试。
+
+在联网的 Arch x86_64 环境中生成完整离线包：
+
+```bash
+sudo pacman -Syu --needed base-devel git python sudo
+bash scripts/build-offline.sh
+```
+
+也可使用 Arch 容器构建。构建需要联网获取锁定源码、编译工具和完整依赖，
+输出位于 `dist/`；不运行测试。离线包体积较大，不提交到 Git 源码仓库。

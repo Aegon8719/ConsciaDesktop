@@ -28,9 +28,9 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chmod 440 /etc/sudoers.d/builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
-      - name: Compile locked forks and package installer
+      - name: Compile locked forks and package full release
         run: |
-          sudo -u builder bash -c 'cd "$1"; bash scripts/build-package.sh; python scripts/package-installer.py' bash "$GITHUB_WORKSPACE"
+          sudo -u builder bash -c 'cd "$1"; bash scripts/build-offline.sh' bash "$GITHUB_WORKSPACE"
       - uses: actions/upload-artifact@v4
         with:
           name: ConsciaDesktop-Arch-x86_64

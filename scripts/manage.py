@@ -153,10 +153,13 @@ def recover(transaction):
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("action", choices=("install", "update", "rollback", "uninstall"))
 parser.add_argument("--package", type=Path, help="install a prebuilt Arch package instead of compiling")
+parser.add_argument("--offline", action="store_true", help="use dependencies installed by the offline bundle")
 parser.add_argument("--recover", action="store_true", help="recover an interrupted transaction")
 args = parser.parse_args()
 if args.package and args.action not in ("install", "update"):
     parser.error("--package is only valid for install/update")
+if args.offline and (args.action not in ("install", "update") or not args.package):
+    parser.error("--offline requires install/update --package")
 if os.geteuid() == 0:
     raise SystemExit("请以普通用户运行；脚本仅在需要时调用 sudo。")
 if not Path("/etc/arch-release").exists():
@@ -193,8 +196,11 @@ stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 needs_greeter = args.action == "install" and not os.path.lexists("/etc/systemd/system/display-manager.service")
 package = None
 if args.action in ("install", "update"):
-    run("sudo", "pacman", "-Syu", "--needed", "--noconfirm", "base-devel", "git", "python")
-    if needs_greeter:
+    if not args.offline:
+        run("sudo", "pacman", "-Syu", "--needed", "--noconfirm", "base-devel", "git", "python")
+    if args.offline and needs_greeter and not Path("/usr/bin/dms-greeter").is_file():
+        raise SystemExit("离线包缺少 DMS Greeter，请重新运行完整离线安装入口。")
+    if needs_greeter and not args.offline:
         greeter_work = cache / "conscia-desktop/greeter" / stamp
         greeter_work.parent.mkdir(parents=True, exist_ok=True)
         install_greeter_package(greeter_work)
