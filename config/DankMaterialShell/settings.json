@@ -19,6 +19,8 @@
   "launcherStyle": "spotlight",
   "weatherEnabled": false,
   "iconThemePerMode": true,
+  "iconThemeDark": "Adwaita",
+  "iconThemeLight": "Adwaita",
   "cursorSettings": {
     "theme": "Breeze_Light",
     "size": 48,
@@ -35,8 +37,8 @@
       "cursorHideTimeout": 0
     }
   },
-  "fontFamily": "Noto Sans CJK SC",
-  "monoFontFamily": "Noto Sans Mono CJK SC",
+  "fontFamily": "Noto Sans",
+  "monoFontFamily": "Noto Sans Mono",
   "fontWeight": 400,
   "fontScale": 1.25,
   "textRenderType": 1,
@@ -479,7 +481,7 @@
   "dmsWindowsFloatingSeeded": [
     "niri"
   ],
-  "displayFontFamily": "Noto Sans CJK SC",
+  "displayFontFamily": "Noto Sans",
   "reduceMotion": true,
   "centeringMode": "geometric",
   "dashCards": [

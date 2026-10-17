@@ -7,11 +7,15 @@ pkgdesc='Conscia niri compositor and DMS shell with pinned compatible fork revis
 arch=('x86_64')
 url='https://github.com/Aegon8719/ConsciaDesktop'
 license=('GPL-3.0-or-later' 'MIT')
-depends=(niri dms-shell quickshell matugen python gdk-pixbuf2 librsvg
+provides=(niri dms-shell wayland-compositor)
+conflicts=(niri dms-shell)
+depends=(quickshell matugen python gdk-pixbuf2 librsvg
+         cairo glib2 glibc libdisplay-info libgcc libinput libpipewire libxkbcommon
+         mesa pango pixman seatd systemd-libs
          xwayland-satellite xdg-desktop-portal-gnome xdg-desktop-portal-gtk
          gnome-keyring accountsservice polkit networkmanager pipewire pipewire-pulse wireplumber
-         alacritty firefox dolphin archlinux-xdg-menu brightnessctl playerctl wl-clipboard wtype cava
-         qt6-multimedia qt6ct breeze breeze-icons noto-fonts noto-fonts-cjk noto-fonts-emoji)
+         alacritty brightnessctl playerctl wl-clipboard wtype cava
+         qt6-multimedia qt6ct breeze-cursors adwaita-icon-theme noto-fonts noto-fonts-emoji)
 makedepends=(git rust go clang pkgconf libinput libxkbcommon libdisplay-info seatd
              libpipewire pango cairo mesa wayland)
 # Rust keeps its own ThinLTO; GCC LTO objects cannot be linked by Rust's lld.

@@ -42,7 +42,6 @@ for name in ("niri", "DankMaterialShell"):
             path.write_text(json.dumps(replace(json.loads(path.read_text())), ensure_ascii=False, indent=2) + "\n")
         elif path.suffix in (".kdl", ".css", ".conf"):
             text = path.read_text()
-            text = text.replace('XDG_MENU_PREFIX "plasma-"', 'XDG_MENU_PREFIX "arch-"')
             for old, new in replacements.items():
                 text = text.replace(old, json.dumps(new, ensure_ascii=False)[1:-1])
             path.write_text(text)

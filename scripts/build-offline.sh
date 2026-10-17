@@ -34,7 +34,7 @@ from pathlib import Path
 import subprocess
 import sys
 bundle = Path(sys.argv[1])
-targets = {"base", "sudo", "archlinux-keyring", "greetd", "python"}
+targets = {"sudo", "archlinux-keyring", "greetd", "python", "bash", "coreutils", "tar", "zstd", "pacman"}
 for directory in ("desktop", "greeter"):
     for package in (bundle / directory).glob("*.pkg.tar.zst"):
         info = subprocess.check_output(["bsdtar", "-xOf", str(package), ".PKGINFO"], text=True)
@@ -56,6 +56,9 @@ database, repository = map(Path, sys.argv[1:3])
 records = subprocess.check_output([
     "pacman", "--dbpath", str(database), "-Sp", "--noconfirm",
     "--print-format", "%f %g", *sys.argv[3:]], text=True)
+# Rebuild the generated repository so removed dependencies do not survive a rerun.
+shutil.rmtree(repository)
+repository.mkdir()
 for record in records.splitlines():
     filename, signature = record.split(" ", 1)
     cached = Path("/var/cache/pacman/pkg") / filename

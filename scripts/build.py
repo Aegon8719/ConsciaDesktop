@@ -60,6 +60,25 @@ for source, target in ((root / "packages/arch/conscia-session", "usr/bin/conscia
     path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, path)
     path.chmod(0o755 if target.startswith("usr/bin/") else 0o644)
+# Install the forks' session integration without pulling in distribution builds.
+for name in ("niri", "dms"):
+    path = args.output / "usr/bin" / name
+    path.unlink(missing_ok=True)
+    path.symlink_to(f"/usr/lib/conscia/bin/{name}")
+for source, target in (
+    (args.work / "niri/resources/niri.service", "usr/lib/systemd/user/niri.service"),
+    (args.work / "niri/resources/niri-shutdown.target", "usr/lib/systemd/user/niri-shutdown.target"),
+    (args.work / "niri/resources/niri-portals.conf", "usr/share/xdg-desktop-portal/niri-portals.conf"),
+    (args.work / "dms/assets/systemd/dms.service", "usr/lib/systemd/user/dms.service"),
+    (args.work / "dms/assets/com.danklinux.dms.svg", "usr/share/icons/hicolor/scalable/apps/com.danklinux.dms.svg"),
+):
+    path = args.output / target
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, path)
+for source in (args.work / "dms/assets").glob("*.desktop"):
+    path = args.output / "usr/share/applications" / source.name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, path)
 for name in ("niri", "dms"):
     path = args.output / "usr/share/licenses/conscia-desktop" / (name + "-LICENSE")
     path.parent.mkdir(parents=True, exist_ok=True)

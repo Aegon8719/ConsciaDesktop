@@ -57,7 +57,7 @@ bash ConsciaDesktop-EndeavourOS.run
 Release 已携带 DMS Greeter；仅源码构建或单独 `--package` 安装时，才从仓库或
 AUR `greetd-dms-greeter-bin` 获取，不需要 yay／paru。
 `--package` 安装同样包含登录界面的配置步骤。已有登录管理器则保留，更新不会替换它。
-登录界面使用独立的 `greeter` 系统账户和系统 niri，不依赖用户家目录中的编译产物；
+登录界面使用独立的 `greeter` 系统账户和本包安装的 fork niri，不依赖用户家目录中的编译产物；
 登录后选择 **Conscia**，进入项目版本的 niri 与 DMS 桌面。
 桌面内 `Super+L` 默认调用 DMS 锁屏。因此从无桌面系统首次安装后，登录和锁屏均使用 DMS。
 安装时自动以安装用户执行 `dms-greeter sync --yes`，使用 DMS 自带的同步机制，
@@ -83,6 +83,21 @@ bash install.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
 EndeavourOS / Arch x86_64 基础系统：已有 systemd、pacman、有 sudo 权限的普通用户，
 无需预装桌面，也无需在目标机器上联网或编译。
 
+发布包以英文界面为支持范围，DMS 默认语言为英语。界面字体使用 Noto Sans，
+等宽数字使用 Noto Sans Mono；保留表情字体，不包含中日韩字体包。
+联网入口下载同一份发布包，因此使用相同默认设置。
+
+默认安装以保留 fork niri 和 DMS 的桌面功能为范围：保留 Alacritty 终端、
+图形登录与锁屏、网络、声音、剪贴板、媒体波形、XWayland 和桌面门户依赖。
+不预装浏览器、文件管理器或完整 Breeze 主题；DMS 管理配色，使用 Adwaita
+基础图标和 Breeze 光标。图形库及其 LLVM 运行依赖仍由包管理器解析并携带。
+只打包这些功能和安装入口的递归依赖，不额外携带整个 `base` 元包的依赖。
+
+本包直接安装 fork 的 niri、DMS、会话服务、门户配置和 DMS 应用入口，
+提供 `niri`、`dms-shell` 包能力，不再依赖发行版的两套程序。
+若系统已安装发行版 niri 或 dms-shell，pacman 会在安装本包时要求确认替换；
+请从 TTY 操作。既有安装的个人配置和其它应用不会因精简自动删除。
+
 ```bash
 tar --zstd -xf ConsciaDesktop-*-EndeavourOS-x86_64-offline.tar.zst
 cd ConsciaDesktop-*-EndeavourOS-x86_64-offline
@@ -90,12 +105,18 @@ bash install-offline.sh
 # 更新既有安装：bash install-offline.sh update
 ```
 
-包内含锁定版本的 Conscia 原生软件包、DMS Greeter、桌面及默认应用的递归依赖、
+包内含锁定版本的 Conscia 原生软件包、DMS Greeter、Alacritty 终端及桌面功能的递归依赖、
 本地 pacman 软件仓库、配置和安装脚本。`packages.txt` 记录精确包版本，
 `built-at.txt` 记录打包时间，`SHA256SUMS` 用于文件完整性检查。
 官方依赖保留软件包签名；自行构建的软件包随离线包提供。
 安装入口仅使用本地仓库，复用在线安装的配置、登录界面及回退记录流程，
 启用 NetworkManager 供下次启动使用，不自动注销或重启。
+
+浏览器和文件管理器不预装。联网后可按需安装，例如：
+
+```bash
+sudo pacman -Syu firefox dolphin
+```
 
 这是已有基础系统上的桌面安装包，不是启动 ISO，不包含分区、引导器安装或
 专有显卡驱动。基础系统应与包内依赖快照一致；不能保证任意旧版或另行修改的

@@ -226,7 +226,8 @@ transaction = {"old": old, "snapshot": str(transaction_dir), "default_target": o
 save(pending, transaction)
 try:
     if args.action in ("install", "update"):
-        run("sudo", "pacman", "-U", "--noconfirm", package)
+        # Let pacman confirm replacement of distribution niri/DMS packages.
+        run("sudo", "pacman", "-U", package)
         record = old or {"history": [], "baseline": str(transaction_dir),
                          "default_target": transaction["default_target"]}
         if args.action == "install":
@@ -245,7 +246,7 @@ try:
         record = dict(record, history=[*record["history"], str(package)])
         save(database, record)
     elif args.action == "rollback":
-        run("sudo", "pacman", "-U", "--noconfirm", old["history"][-2])
+        run("sudo", "pacman", "-U", old["history"][-2])
         save(database, dict(old, history=old["history"][:-1]))
     else:
         run("sudo", "pacman", "-R", "--noconfirm", "conscia-desktop")

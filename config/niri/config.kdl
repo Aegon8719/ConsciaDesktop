@@ -491,11 +491,6 @@ binds {
     Mod+Shift+P hotkey-overlay-title=null { power-off-monitors; }
 }
 
-// Application menu used by KDE applications and DMS.
-environment {
-    XDG_MENU_PREFIX "plasma-"
-}
-
 // DMS Include Configs
 include "dms/cursor.kdl"
 include "dms/layout.kdl"
