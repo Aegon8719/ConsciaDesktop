@@ -228,9 +228,15 @@ python3 scripts/package-installer.py
 将 `.run` 复制到新电脑后执行 `bash ConsciaDesktop-EndeavourOS.run`。
 它下载同一 Release 的完整离线包和校验文件，然后执行包内安装入口；需要先发布对应 Release。
 
-GitHub Actions 在手动触发时构建并上传 Artifacts；推送 `v*` 标签时，
+GitHub Actions 在手动触发、或 `main` 上构建相关文件变化时构建并上传 Artifacts；推送 `v*` 标签时，
 在构建成功后将完整 `.tar.zst` 包、SHA-256 校验文件和 `.run` 下载入口发布到 GitHub Release。
-所有入口共用同一份构建产物，工作流不运行测试。
+已有同名 Release 时跳过发布，不覆盖附件。所有入口共用同一份构建产物，工作流不运行测试。
+
+云端按可用 CPU 核数并行编译 Rust、Go 和压缩归档。`main` 构建保存 Cargo、Go、pacman
+下载缓存以及 Rust、Go 编译缓存，后续版本标签从默认分支恢复缓存；标签本身不写共享缓存。
+编译缓存按架构、已安装系统包版本和构建脚本区分，源码变化由编译器决定重编译范围。
+首次运行或原生依赖更新后的构建仍需重新编译。等待 `main` 构建完成再推送版本标签，
+可以复用该次构建的缓存。Artifacts 上传不再重复压缩已压缩的安装包。
 
 在联网的 Arch x86_64 环境中生成完整离线包：
 

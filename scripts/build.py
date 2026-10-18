@@ -39,7 +39,8 @@ for name in ("niri", "dms"):
 
 os.environ.setdefault("CARGO_BUILD_JOBS", "1")
 target = args.work.resolve() / "target"
-os.environ["CARGO_TARGET_DIR"] = str(target)
+os.environ.setdefault("CARGO_TARGET_DIR", str(target))
+target = Path(os.environ["CARGO_TARGET_DIR"]).resolve()
 os.environ["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
 os.environ["GOTOOLCHAIN"] = "auto"
 run("cargo", "build", "--release", "--locked", cwd=args.work / "niri")

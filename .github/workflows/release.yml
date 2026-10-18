@@ -2,17 +2,39 @@ name: Build and release
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*']
+    paths:
+      - '.github/workflows/release.yml'
+      - 'versions.lock'
+      - 'scripts/**'
+      - 'packages/**'
+      - 'config/**'
+      - '*.sh'
 permissions:
   contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
     container: archlinux:base-devel
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - name: Install build prerequisites
         run: pacman -Syu --noconfirm --needed git python sudo
       - uses: actions/checkout@v4
+      - name: Restore dependency downloads
+        id: downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /var/cache/pacman/pkg
+            /home/builder/.cargo/registry
+            /home/builder/.cargo/git
+            /home/builder/go/pkg/mod
+          key: ArchDownloads-v1-${{ runner.arch }}-${{ github.run_id }}
+          restore-keys: ArchDownloads-v1-${{ runner.arch }}-
       - name: Require the release tag to match versions.lock
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -28,14 +50,58 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chmod 440 /etc/sudoers.d/builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
-      - name: Compile locked forks and package full release
+      - name: Install native dependencies and identify build environment
+        id: environment
+        working-directory: packages/arch
+        shell: bash
         run: |
-          sudo -u builder bash -c 'cd "$1"; bash scripts/build-offline.sh' bash "$GITHUB_WORKSPACE"
+          startdir=$PWD
+          source PKGBUILD
+          pacman -S --needed --noconfirm "${depends[@]}" "${makedepends[@]}"
+          echo "fingerprint=$(pacman -Q | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Restore compiled dependencies
+        id: compiled
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/builder/.cache/ConsciaDesktop/cargo-target
+            /home/builder/.cache/go-build
+          key: ArchCompiled-v1-${{ runner.arch }}-${{ steps.environment.outputs.fingerprint }}-${{ hashFiles('packages/arch/PKGBUILD', 'scripts/build.py') }}-${{ github.sha }}
+          restore-keys: ArchCompiled-v1-${{ runner.arch }}-${{ steps.environment.outputs.fingerprint }}-${{ hashFiles('packages/arch/PKGBUILD', 'scripts/build.py') }}-
+      - name: Compile locked forks and package full release
+        shell: bash
+        run: |
+          chown -R builder:builder /home/builder
+          jobs=$(nproc)
+          echo "Building with $jobs CPU workers" >> "$GITHUB_STEP_SUMMARY"
+          sudo -H -u builder env CARGO_BUILD_JOBS="$jobs" GOMAXPROCS="$jobs" MAKEFLAGS="-j$jobs" \
+            CARGO_TARGET_DIR=/home/builder/.cache/ConsciaDesktop/cargo-target \
+            bash -c 'cd "$1"; bash scripts/build-offline.sh /home/builder/ConsciaDesktopBuild' bash "$GITHUB_WORKSPACE"
+      # Only main writes shared caches; tag caches cannot be reused by other tags.
+      - name: Save dependency downloads
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /var/cache/pacman/pkg
+            /home/builder/.cargo/registry
+            /home/builder/.cargo/git
+            /home/builder/go/pkg/mod
+          key: ${{ steps.downloads.outputs.cache-primary-key }}
+      - name: Save compiled dependencies
+        if: github.ref == 'refs/heads/main' && steps.compiled.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/builder/.cache/ConsciaDesktop/cargo-target
+            /home/builder/.cache/go-build
+          key: ${{ steps.compiled.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: ConsciaDesktop-Arch-x86_64
           path: dist/*
           if-no-files-found: error
+          compression-level: 0
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build

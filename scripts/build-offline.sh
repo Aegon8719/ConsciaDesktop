@@ -79,7 +79,7 @@ chmod +x "$bundle/install-offline.sh"
 date -u +'%Y-%m-%dT%H:%M:%SZ' > "$bundle/built-at.txt"
 pacman -Qp "$bundle"/repo/*.pkg.tar.zst "$bundle"/desktop/*.pkg.tar.zst "$bundle"/greeter/*.pkg.tar.zst > "$bundle/packages.txt"
 (cd "$bundle" && find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS)
-tar -C "$work" -I 'zstd -T2 -3' -cf "$root/dist/$name.tar.zst" "$name"
+tar -C "$work" -I 'zstd -T0 -3' -cf "$root/dist/$name.tar.zst" "$name"
 (cd "$root/dist" && sha256sum "$name.tar.zst" > "$name.tar.zst.sha256")
 python3 "$root/scripts/package-installer.py"
 echo "Created $root/dist/$name.tar.zst"
