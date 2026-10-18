@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=Conscia
-Comment=Conscia Desktop
-Exec=/usr/bin/conscia-session
-Type=Application
-DesktopNames=niri

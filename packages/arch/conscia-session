@@ -1,3 +1,0 @@
-#!/bin/sh
-export PATH="/usr/lib/conscia/bin:/usr/local/bin:$PATH"
-exec /usr/lib/conscia/bin/niri-session "$@"

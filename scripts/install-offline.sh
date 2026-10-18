@@ -9,15 +9,21 @@ case "${ID:-}" in arch|endeavouros) ;; *) echo '仅支持 Arch / EndeavourOS。'
 [[ $(uname -m) == x86_64 ]] || { echo '仅支持 x86_64。' >&2; exit 1; }
 cd "$bundle"
 sha256sum --check --quiet SHA256SUMS
-if [[ $action == install ]] && { [[ -e /var/lib/conscia-desktop/owner ]] || pacman -Q conscia-desktop &>/dev/null; }; then
+# Refuse before changing packages; old snapshots require the old installer.
+legacy_state="${XDG_STATE_HOME:-$HOME/.local/state}/conscia-desktop"
+if [[ -e /var/lib/conscia-desktop/owner || -e "$legacy_state/installation.json" || -e "$legacy_state/pending.json" ]] || pacman -Q conscia-desktop &>/dev/null; then
+    echo '检测到旧命名版本。请先使用旧版安装目录执行 bash uninstall.sh；有中断事务时先执行 bash rollback.sh --recover，再安装 ConsciaDesktop。' >&2
+    exit 1
+fi
+if [[ $action == install ]] && { [[ -e /var/lib/ConsciaDesktop/owner ]] || pacman -Q ConsciaDesktop &>/dev/null; }; then
     echo 'Conscia 已安装，请使用原有更新流程。' >&2
     exit 1
 fi
-if [[ $action == update ]] && ! pacman -Q conscia-desktop &>/dev/null; then
+if [[ $action == update ]] && ! pacman -Q ConsciaDesktop &>/dev/null; then
     echo 'Conscia 尚未安装。' >&2
     exit 1
 fi
-if [[ -r /var/lib/conscia-desktop/owner ]] && [[ $(cat /var/lib/conscia-desktop/owner) != "$(id -u)" ]]; then
+if [[ -r /var/lib/ConsciaDesktop/owner ]] && [[ $(cat /var/lib/ConsciaDesktop/owner) != "$(id -u)" ]]; then
     echo '请由原安装用户更新 Conscia。' >&2
     exit 1
 fi
@@ -27,7 +33,7 @@ if systemctl --user is-active --quiet niri.service dms.service; then
 fi
 sudo -v
 # Pacman's download user must be able to read packages even from a private USB mount.
-stage=$(sudo mktemp -d /var/cache/conscia-offline.XXXXXX)
+stage=$(sudo mktemp -d /var/cache/ConsciaDesktopOffline.XXXXXX)
 trap 'sudo rm -rf -- "$stage"' EXIT
 sudo chmod 755 "$stage"
 sudo cp -a repo "$stage/repo"
@@ -40,7 +46,7 @@ Architecture = x86_64
 SigLevel = Required DatabaseOptional
 LocalFileSigLevel = Optional
 CacheDir = $stage/repo
-[conscia-offline]
+[ConsciaDesktopOffline]
 Server = file://$stage/repo
 EOF
 mapfile -t targets < targets.txt
@@ -49,7 +55,7 @@ sudo pacman --config "$config" -U --needed --noconfirm "$stage"/repo/archlinux-k
 sudo pacman --config "$config" -Sy --needed --noconfirm "${targets[@]}"
 sudo pacman --config "$config" -U --needed --noconfirm greeter/*.pkg.tar.zst
 exec_args=(python3 "$bundle/scripts/manage.py" "$action" --offline --package)
-"${exec_args[@]}" "$bundle"/desktop/conscia-desktop-*.pkg.tar.zst
+"${exec_args[@]}" "$bundle"/desktop/ConsciaDesktop-*.pkg.tar.zst
 if [[ $action == install ]]; then
     sudo systemctl enable NetworkManager.service
 fi

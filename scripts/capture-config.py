@@ -11,13 +11,13 @@ root = Path(__file__).resolve().parent.parent
 home = Path.home()
 config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
-with tempfile.TemporaryDirectory(prefix="conscia-config-") as directory:
+with tempfile.TemporaryDirectory(prefix="ConsciaDesktopConfig-") as directory:
     profile = Path(directory) / "profile"
     profile.mkdir(parents=True)
 
     def portable(value):
         if isinstance(value, str):
-            return value.replace(str(home), "@CONSCIA_HOME@")
+            return value.replace(str(home), "@ConsciaDesktopHome@")
         if isinstance(value, list):
             return [portable(item) for item in value]
         if isinstance(value, dict):
@@ -30,9 +30,12 @@ with tempfile.TemporaryDirectory(prefix="conscia-config-") as directory:
     niri.mkdir(parents=True)
     for path in (config / "niri").rglob("*.kdl"):
         relative = path.relative_to(config / "niri")
+        if relative.parts[0] == "conscia":
+            relative = Path("ConsciaDesktop", *relative.parts[1:])
         target = niri / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(path.read_text().replace(str(home), "@CONSCIA_HOME@"))
+        text = path.read_text().replace(str(home), "@ConsciaDesktopHome@")
+        target.write_text(text.replace('"conscia/appearance.kdl"', '"ConsciaDesktop/appearance.kdl"'))
     dms = profile / "DankMaterialShell"
     dms.mkdir(parents=True)
     for name in ("settings.json", "plugin_settings.json", ".firstlaunch"):
@@ -52,7 +55,7 @@ with tempfile.TemporaryDirectory(prefix="conscia-config-") as directory:
     manifest = {
         "created": datetime.now().astimezone().isoformat(),
         "target": "EndeavourOS / Arch Linux x86_64",
-        "source": "Conscia desktop preferences",
+        "source": "ConsciaDesktop preferences",
     }
     (profile / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 

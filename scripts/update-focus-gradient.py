@@ -152,7 +152,7 @@ def main():
     config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--palette", type=Path, default=cache / "DankMaterialShell/dms-colors.json")
-    parser.add_argument("--output", type=Path, default=config / "niri/conscia/appearance.kdl")
+    parser.add_argument("--output", type=Path, default=config / "niri/ConsciaDesktop/appearance.kdl")
     args = parser.parse_args()
     try:
         apply(args.palette, args.output)

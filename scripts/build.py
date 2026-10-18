@@ -44,7 +44,10 @@ os.environ["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
 os.environ["GOTOOLCHAIN"] = "auto"
 run("cargo", "build", "--release", "--locked", cwd=args.work / "niri")
 run("make", "build", "VERSION=" + lock["version"], "COMMIT=" + lock["dms"]["revision"], cwd=args.work / "dms")
-destination = args.output / "usr/lib/conscia"
+# Staging must not retain files under paths removed or renamed since the last build.
+shutil.rmtree(args.output)
+args.output.mkdir(parents=True)
+destination = args.output / "usr/lib/ConsciaDesktop"
 (destination / "bin").mkdir(parents=True, exist_ok=True)
 for source, name in ((target / "release/niri", "niri"),
                      (args.work / "dms/core/bin/dms", "dms"),
@@ -54,8 +57,8 @@ for source, name in ((target / "release/niri", "niri"),
 shutil.copytree(root / "scripts", destination / "scripts", dirs_exist_ok=True)
 shutil.copytree(root / "config", destination / "config", dirs_exist_ok=True)
 shutil.copy2(root / "versions.lock", destination / "versions.lock")
-for source, target in ((root / "packages/arch/conscia-session", "usr/bin/conscia-session"),
-                       (root / "packages/arch/conscia.desktop", "usr/share/wayland-sessions/conscia.desktop")):
+for source, target in ((root / "packages/arch/ConsciaDesktopSession", "usr/bin/ConsciaDesktopSession"),
+                       (root / "packages/arch/ConsciaDesktop.desktop", "usr/share/wayland-sessions/ConsciaDesktop.desktop")):
     path = args.output / target
     path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, path)
@@ -64,7 +67,7 @@ for source, target in ((root / "packages/arch/conscia-session", "usr/bin/conscia
 for name in ("niri", "dms"):
     path = args.output / "usr/bin" / name
     path.unlink(missing_ok=True)
-    path.symlink_to(f"/usr/lib/conscia/bin/{name}")
+    path.symlink_to(f"/usr/lib/ConsciaDesktop/bin/{name}")
 for source, target in (
     (args.work / "niri/resources/niri.service", "usr/lib/systemd/user/niri.service"),
     (args.work / "niri/resources/niri-shutdown.target", "usr/lib/systemd/user/niri-shutdown.target"),
@@ -80,6 +83,6 @@ for source in (args.work / "dms/assets").glob("*.desktop"):
     path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, path)
 for name in ("niri", "dms"):
-    path = args.output / "usr/share/licenses/conscia-desktop" / (name + "-LICENSE")
+    path = args.output / "usr/share/licenses/ConsciaDesktop" / (name + "-LICENSE")
     path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(args.work / name / "LICENSE", path)

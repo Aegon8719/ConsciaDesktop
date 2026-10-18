@@ -3,7 +3,7 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 [[ $EUID != 0 ]] || { echo '请以普通用户在 Arch 构建环境中运行。' >&2; exit 1; }
 [[ -e /etc/arch-release && $(uname -m) == x86_64 ]] || { echo '需要 Arch x86_64 构建环境。' >&2; exit 1; }
-cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/conscia-desktop"
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/ConsciaDesktop"
 mkdir -p "$cache_root"
 work=${1:-$(mktemp -d "$cache_root/offline.XXXXXX")}
 mkdir -p "$work" "$root/dist"
@@ -12,7 +12,7 @@ version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versi
 name="ConsciaDesktop-$version-EndeavourOS-x86_64-offline"
 bundle="$work/$name"
 mkdir -p "$bundle"/{repo,desktop,greeter}
-if ! compgen -G "$bundle/desktop/conscia-desktop-*.pkg.tar.zst" >/dev/null; then
+if ! compgen -G "$bundle/desktop/ConsciaDesktop-*.pkg.tar.zst" >/dev/null; then
     bash "$root/scripts/build-package.sh" "$work/build" "$bundle/desktop"
 fi
 
@@ -65,7 +65,7 @@ for record in records.splitlines():
     shutil.copy2(cached, repository / filename)
     (repository / (filename + ".sig")).write_bytes(base64.b64decode(signature, validate=True))
 PY
-repo-add "$bundle/repo/conscia-offline.db.tar.gz" "$bundle"/repo/*.pkg.tar.zst
+repo-add "$bundle/repo/ConsciaDesktopOffline.db.tar.gz" "$bundle"/repo/*.pkg.tar.zst
 rm -f "$bundle"/repo/*.old
 for entry in scripts config packages versions.lock README.md install.sh update.sh rollback.sh uninstall.sh; do
     cp -a "$root/$entry" "$bundle/"

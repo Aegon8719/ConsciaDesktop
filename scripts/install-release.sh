@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-version=${CONSCIA_RELEASE_VERSION:?Release version is required}
+version=${ConsciaDesktopReleaseVersion:?Release version is required}
 action=${1:-install}
 [[ $action == install || $action == update ]] || { echo 'Usage: installer [install|update]' >&2; exit 1; }
 [[ $EUID != 0 ]] || { echo '请以有 sudo 权限的普通用户运行。' >&2; exit 1; }
@@ -12,7 +12,7 @@ for tool in curl tar zstd sha256sum; do
 done
 name="ConsciaDesktop-$version-EndeavourOS-x86_64-offline"
 url="https://github.com/Aegon8719/ConsciaDesktop/releases/download/v$version"
-cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/conscia-desktop/releases"
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/ConsciaDesktop/releases"
 mkdir -p "$cache_root"
 work=$(mktemp -d "$cache_root/$version.XXXXXX")
 cd "$work"

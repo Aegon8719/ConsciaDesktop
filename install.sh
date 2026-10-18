@@ -2,7 +2,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 if [[ $# == 0 ]]; then
-    export CONSCIA_RELEASE_VERSION=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$root/versions.lock")
+    export ConsciaDesktopReleaseVersion=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$root/versions.lock")
     exec bash "$root/scripts/install-release.sh"
 fi
 if [[ ${1:-} == --build ]]; then shift; fi

@@ -7,7 +7,7 @@ import shlex
 root = Path(__file__).resolve().parent.parent
 version = json.loads((root / "versions.lock").read_text())["version"]
 script = (root / "scripts/install-release.sh").read_text()
-script = script.replace("set -euo pipefail", "set -euo pipefail\nexport CONSCIA_RELEASE_VERSION=" + shlex.quote(version), 1)
+script = script.replace("set -euo pipefail", "set -euo pipefail\nexport ConsciaDesktopReleaseVersion=" + shlex.quote(version), 1)
 output = root / "dist/ConsciaDesktop-EndeavourOS.run"
 output.parent.mkdir(parents=True, exist_ok=True)
 temporary = output.with_suffix(".tmp")

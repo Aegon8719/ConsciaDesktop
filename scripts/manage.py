@@ -13,18 +13,18 @@ home = Path.home()
 config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
 cache = Path(os.environ.get("XDG_CACHE_HOME", home / ".cache"))
-store = state / "conscia-desktop"
+store = state / "ConsciaDesktop"
 database = store / "installation.json"
 pending = store / "pending.json"
-owner = Path("/var/lib/conscia-desktop/owner")
+owner = Path("/var/lib/ConsciaDesktop/owner")
 units = config / "systemd/user"
 managed = [config / "niri", config / "DankMaterialShell", state / "DankMaterialShell/session.json",
            cache / "DankMaterialShell/dms-colors.json",
-           units / "niri.service.d/90-conscia-local.conf", units / "dms.service.d/90-conscia-local.conf",
-           units / "conscia-focus-gradient.service", units / "conscia-focus-gradient.path",
+           units / "niri.service.d/90-ConsciaDesktop.conf", units / "dms.service.d/90-ConsciaDesktop.conf",
+           units / "ConsciaDesktopFocusGradient.service", units / "ConsciaDesktopFocusGradient.path",
            units / "niri.service.wants/dms.service",
-           units / "default.target.wants/conscia-focus-gradient.path",
-           units / "default.target.wants/conscia-focus-gradient.service",
+           units / "default.target.wants/ConsciaDesktopFocusGradient.path",
+           units / "default.target.wants/ConsciaDesktopFocusGradient.service",
            units / "sockets.target.wants/pipewire.socket",
            units / "sockets.target.wants/pipewire-pulse.socket",
            units / "pipewire.service.wants/wireplumber.service"]
@@ -75,13 +75,13 @@ def reload_user():
 
 def stop_gradient():
     for suffix in ("path", "service"):
-        subprocess.run(["systemctl", "--user", "stop", "conscia-focus-gradient." + suffix], check=False)
+        subprocess.run(["systemctl", "--user", "stop", "ConsciaDesktopFocusGradient." + suffix], check=False)
 
 def resume_gradient():
     reload_user()
     for suffix in ("path", "service"):
-        if (units / ("default.target.wants/conscia-focus-gradient." + suffix)).exists():
-            run("systemctl", "--user", "start", "conscia-focus-gradient." + suffix)
+        if (units / ("default.target.wants/ConsciaDesktopFocusGradient." + suffix)).exists():
+            run("systemctl", "--user", "start", "ConsciaDesktopFocusGradient." + suffix)
 
 def install_greeter_package(work):
     run("sudo", "pacman", "-S", "--needed", "--noconfirm", "greetd", "quickshell")
@@ -134,8 +134,8 @@ def recover(transaction):
     old = transaction["old"]
     if old:
         run("sudo", "pacman", "-U", "--noconfirm", old["history"][-1])
-    elif output("pacman", "-Q", "conscia-desktop").returncode == 0:
-        run("sudo", "pacman", "-R", "--noconfirm", "conscia-desktop")
+    elif output("pacman", "-Q", "ConsciaDesktop").returncode == 0:
+        run("sudo", "pacman", "-R", "--noconfirm", "ConsciaDesktop")
     restore(Path(transaction["snapshot"]))
     if transaction.get("greeter"):
         restore_greeter(transaction["greeter"])
@@ -164,6 +164,12 @@ if os.geteuid() == 0:
     raise SystemExit("请以普通用户运行；脚本仅在需要时调用 sudo。")
 if not Path("/etc/arch-release").exists():
     raise SystemExit("目前支持 EndeavourOS / Arch Linux。")
+# Historical records contain absolute paths and must be handled by their installer.
+legacy_store = state / "conscia-desktop"
+if (Path("/var/lib/conscia-desktop/owner").exists()
+        or any((legacy_store / name).exists() for name in ("installation.json", "pending.json"))
+        or output("pacman", "-Q", "conscia-desktop").returncode == 0):
+    raise SystemExit("检测到旧命名版本。请先使用该版本的安装目录执行 bash uninstall.sh；如有中断事务，先执行 bash rollback.sh --recover，再安装 ConsciaDesktop。")
 if owner.exists() and owner.read_text().strip() != str(os.getuid()):
     raise SystemExit("该机器上的 Conscia 由另一个用户管理，请由原安装用户操作。")
 if any(output("systemctl", "--user", "is-active", "--quiet", unit).returncode == 0
@@ -184,7 +190,7 @@ if args.recover:
 if pending.exists():
     raise SystemExit("上次事务尚未完成，请先运行 bash rollback.sh --recover。")
 old = json.loads(database.read_text()) if database.exists() else None
-installed = output("pacman", "-Q", "conscia-desktop").returncode == 0
+installed = output("pacman", "-Q", "ConsciaDesktop").returncode == 0
 if args.action == "install" and (old or installed):
     raise SystemExit("已有安装。通过本安装器安装的版本请运行 update.sh；手动安装的软件包请先卸载。")
 if args.action != "install" and not old:
@@ -201,18 +207,18 @@ if args.action in ("install", "update"):
     if args.offline and needs_greeter and not Path("/usr/bin/dms-greeter").is_file():
         raise SystemExit("离线包缺少 DMS Greeter，请重新运行完整离线安装入口。")
     if needs_greeter and not args.offline:
-        greeter_work = cache / "conscia-desktop/greeter" / stamp
+        greeter_work = cache / "ConsciaDesktop/greeter" / stamp
         greeter_work.parent.mkdir(parents=True, exist_ok=True)
         install_greeter_package(greeter_work)
     if args.package:
         package = args.package.resolve(strict=True)
         info = output("pacman", "-Qp", str(package))
-        if info.returncode or info.stdout.split()[0] != "conscia-desktop":
-            raise SystemExit("--package 必须指向 conscia-desktop Arch 软件包。")
+        if info.returncode or info.stdout.split()[0] != "ConsciaDesktop":
+            raise SystemExit("--package 必须指向 ConsciaDesktop Arch 软件包。")
     else:
-        work = cache / "conscia-desktop/builds" / stamp
+        work = cache / "ConsciaDesktop/builds" / stamp
         run("bash", root / "scripts/build-package.sh", work, work)
-        packages = list(work.glob("conscia-desktop-*.pkg.tar.*"))
+        packages = list(work.glob("ConsciaDesktop-*.pkg.tar.*"))
         package = next(path for path in packages if not path.name.endswith(".sig"))
     cached = store / "packages" / stamp / package.name
     cached.parent.mkdir(parents=True)
@@ -231,11 +237,11 @@ try:
         record = old or {"history": [], "baseline": str(transaction_dir),
                          "default_target": transaction["default_target"]}
         if args.action == "install":
-            run("python3", "/usr/lib/conscia/scripts/deploy-profile.py",
-                "/usr/lib/conscia/config", transaction_dir / "deployment")
+            run("python3", "/usr/lib/ConsciaDesktop/scripts/deploy-profile.py",
+                "/usr/lib/ConsciaDesktop/config", transaction_dir / "deployment")
             reload_user()
             run("systemctl", "--user", "add-wants", "niri.service", "dms.service")
-            run("systemctl", "--user", "enable", "conscia-focus-gradient.path", "conscia-focus-gradient.service")
+            run("systemctl", "--user", "enable", "ConsciaDesktopFocusGradient.path", "ConsciaDesktopFocusGradient.service")
             run("systemctl", "--user", "enable", "pipewire.socket", "pipewire-pulse.socket", "wireplumber.service")
             if needs_greeter:
                 transaction["greeter"] = snapshot_greeter(transaction_dir)
@@ -249,7 +255,7 @@ try:
         run("sudo", "pacman", "-U", old["history"][-2])
         save(database, dict(old, history=old["history"][:-1]))
     else:
-        run("sudo", "pacman", "-R", "--noconfirm", "conscia-desktop")
+        run("sudo", "pacman", "-R", "--noconfirm", "ConsciaDesktop")
         restore(Path(old["baseline"]))
         if old.get("greeter") and Path("/etc/systemd/system/display-manager.service").resolve().name == "greetd.service":
             transaction["greeter"] = snapshot_greeter(transaction_dir)
@@ -272,4 +278,4 @@ except Exception:
 print(f"{args.action} 完成。配置备份和软件包历史：{store}")
 print("不会自动注销或重启。系统依赖及其升级不会被回退。")
 if args.action != "uninstall":
-    print("下次登录时选择 Conscia。")
+    print("下次登录时选择 ConsciaDesktop。")

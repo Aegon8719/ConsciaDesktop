@@ -2,7 +2,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 [[ $EUID != 0 ]] || { echo 'makepkg 必须以普通用户运行。' >&2; exit 1; }
-cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/conscia-desktop"
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/ConsciaDesktop"
 mkdir -p "$cache_root"
 work=${1:-$(mktemp -d "$cache_root/build.XXXXXX")}
 destination=${2:-$root/dist}

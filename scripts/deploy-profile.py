@@ -11,7 +11,7 @@ home = Path.home()
 config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
 cache = Path(os.environ.get("XDG_CACHE_HOME", home / ".cache"))
-replacements = {"@CONSCIA_HOME@": str(home)}
+replacements = {"@ConsciaDesktopHome@": str(home)}
 
 def replace(value):
     if isinstance(value, str):
@@ -25,13 +25,13 @@ def replace(value):
 
 def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".conscia-new")
+    temporary = path.with_name(path.name + ".ConsciaDesktopNew")
     temporary.write_text(content)
     os.replace(temporary, path)
 
 for name in ("niri", "DankMaterialShell"):
     target = config / name
-    staged = config / (name + ".conscia-new")
+    staged = config / (name + ".ConsciaDesktopNew")
     if staged.exists():
         raise RuntimeError(f"unfinished earlier installation: {staged}")
     shutil.copytree(profile / name, staged)
@@ -60,18 +60,18 @@ palette.unlink(missing_ok=True)
 units = config / "systemd/user"
 for name in ("niri", "dms"):
     args = "--session" if name == "niri" else "run --session"
-    content = f"[Service]\nEnvironment=PATH=/usr/lib/conscia/bin:/usr/local/bin:/usr/bin\nExecStart=\nExecStart=/usr/lib/conscia/bin/{name} {args}\n"
-    write(units / f"{name}.service.d/90-conscia-local.conf", content)
+    content = f"[Service]\nEnvironment=PATH=/usr/lib/ConsciaDesktop/bin:/usr/local/bin:/usr/bin\nExecStart=\nExecStart=/usr/lib/ConsciaDesktop/bin/{name} {args}\n"
+    write(units / f"{name}.service.d/90-ConsciaDesktop.conf", content)
 
 def quote(path):
     return '"' + str(path).replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%').replace('$', '$$') + '"'
 
-appearance = config / "niri/conscia/appearance.kdl"
+appearance = config / "niri/ConsciaDesktop/appearance.kdl"
 service = f'''[Unit]
 Description=Conscia wallpaper focus gradient
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /usr/lib/conscia/scripts/update-focus-gradient.py --palette {quote(palette)} --output {quote(appearance)}
+ExecStart=/usr/bin/python3 /usr/lib/ConsciaDesktop/scripts/update-focus-gradient.py --palette {quote(palette)} --output {quote(appearance)}
 TimeoutStartSec=15
 [Install]
 WantedBy=default.target
@@ -80,10 +80,10 @@ path_unit = f'''[Unit]
 Description=Watch the DMS wallpaper palette
 [Path]
 PathChanged={str(palette).replace('%', '%%')}
-Unit=conscia-focus-gradient.service
+Unit=ConsciaDesktopFocusGradient.service
 [Install]
 WantedBy=default.target
 '''
 for suffix, content in (("service", service), ("path", path_unit)):
-    write(units / f"conscia-focus-gradient.{suffix}", content)
+    write(units / f"ConsciaDesktopFocusGradient.{suffix}", content)
 (home / "Pictures/Screenshots").mkdir(parents=True, exist_ok=True)

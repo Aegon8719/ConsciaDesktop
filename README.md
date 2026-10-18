@@ -52,26 +52,26 @@ bash ConsciaDesktop-EndeavourOS.run
 开发者如需在目标系统联网获取源码并编译，显式执行 `bash install.sh --build`。
 该模式会先完整更新 pacman 系统并安装构建工具，仍不运行测试套件。
 
-安装后自行重启，在登录界面选择 **Conscia**。
+安装后自行重启，在登录界面选择 **ConsciaDesktop**。
 没有登录管理器时会自动安装并启用 **greetd + DMS Greeter**，无需预装 KDE、GNOME 或 SDDM。
 Release 已携带 DMS Greeter；仅源码构建或单独 `--package` 安装时，才从仓库或
 AUR `greetd-dms-greeter-bin` 获取，不需要 yay／paru。
 `--package` 安装同样包含登录界面的配置步骤。已有登录管理器则保留，更新不会替换它。
 登录界面使用独立的 `greeter` 系统账户和本包安装的 fork niri，不依赖用户家目录中的编译产物；
-登录后选择 **Conscia**，进入项目版本的 niri 与 DMS 桌面。
+登录后选择 **ConsciaDesktop**，进入项目版本的 niri 与 DMS 桌面。
 桌面内 `Super+L` 默认调用 DMS 锁屏。因此从无桌面系统首次安装后，登录和锁屏均使用 DMS。
 安装时自动以安装用户执行 `dms-greeter sync --yes`，使用 DMS 自带的同步机制，
 让登录界面跟随该用户的桌面壁纸与主题设置；所需账户组和文件读取权限由 DMS Greeter 配置。
 ConsciaDesktop 不指定默认壁纸图片，也不携带自定义壁纸或动态配色缓存，首次启动采用 DMS 自身默认设置。
 之后在 DMS 中更换壁纸，登录界面通过同步的用户配置跟随，不固定到某个图片路径。
 配置只启用下次启动服务，不立即启动登录管理器或打断 TTY 会话。
-也可以在 TTY 运行 `conscia-session`。NVIDIA 驱动交由 EndeavourOS 自身管理。
+也可以在 TTY 运行 `ConsciaDesktopSession`。NVIDIA 驱动交由 EndeavourOS 自身管理。
 维护已有 niri/DMS 桌面时，先注销，再从本机 TTY 运行这些脚本。
 
 开发者也可安装自行构建的 Arch 软件包（此模式仍需联网安装系统依赖）：
 
 ```bash
-bash install.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
+bash install.sh --package /path/to/ConsciaDesktop-*.pkg.tar.zst
 ```
 
 软件包由 pacman 安装；不要另外直接安装该软件包后再运行首次安装流程，
@@ -124,13 +124,18 @@ sudo pacman -Syu firefox dolphin
 
 ## 更新与回退
 
+包名、安装路径与项目名称统一为 `ConsciaDesktop`。旧命名版本的安装记录和回退快照
+不能直接用新版入口接管；应在 TTY 中使用旧版安装目录的 `bash uninstall.sh` 卸载，
+然后运行新版首次安装入口。如旧版存在中断事务，先用旧版的 `bash rollback.sh --recover`
+恢复。安装器会在更改软件包前拒绝接管旧记录，旧版缓存和备份不会自动删除。
+
 先更新本安装仓库到需要的发布版本，再运行：
 
 ```bash
 git pull --ff-only
 bash update.sh
 # 或使用发布的软件包：
-bash update.sh --package /path/to/conscia-desktop-*.pkg.tar.zst
+bash update.sh --package /path/to/ConsciaDesktop-*.pkg.tar.zst
 
 # 回到上一次安装的软件包版本：
 bash rollback.sh
@@ -156,7 +161,7 @@ bash rollback.sh --recover
 bash uninstall.sh
 ```
 
-卸载 `conscia-desktop` 软件包，恢复首次安装前的个人配置和服务覆盖文件。
+卸载 `ConsciaDesktop` 软件包，恢复首次安装前的个人配置和服务覆盖文件。
 卸载前的最新配置也会另存一份。自动启用的 DMS Greeter 会在仍由 greetd 管理登录时取消启用，
 恢复配置前的 greetd 配置、启用状态和默认启动目标；中断事务恢复也包含这些状态。
 如果之后自行切换了登录管理器，卸载不会替换它。依赖软件包和 greeter 系统账户不自动删除，避免影响其他桌面。
@@ -166,12 +171,16 @@ bash uninstall.sh
 
 | 内容 | 位置 |
 | --- | --- |
-| 当前程序及配套脚本 | `/usr/lib/conscia/`，由 pacman 管理 |
-| 登录入口 | `/usr/bin/conscia-session` |
+| 当前程序及配套脚本 | `/usr/lib/ConsciaDesktop/`，由 pacman 管理 |
+| 登录入口 | `/usr/bin/ConsciaDesktopSession` |
+| 会话描述 | `/usr/share/wayland-sessions/ConsciaDesktop.desktop` |
+| 安装用户标识 | `/var/lib/ConsciaDesktop/owner` |
+| 配色服务 | `ConsciaDesktopFocusGradient.service`、`ConsciaDesktopFocusGradient.path` |
+| 服务覆盖文件 | `niri.service.d/90-ConsciaDesktop.conf`、`dms.service.d/90-ConsciaDesktop.conf` |
 | 用户配置 | `$XDG_CONFIG_HOME/niri/`、`$XDG_CONFIG_HOME/DankMaterialShell/` |
 | 壁纸设置 | 由 DMS 管理；安装包不携带壁纸图片 |
-| 安装记录、旧软件包、配置快照 | `$XDG_STATE_HOME/conscia-desktop/` |
-| 下载的源码、编译中间文件 | `$XDG_CACHE_HOME/conscia-desktop/` |
+| 安装记录、旧软件包、配置快照 | `$XDG_STATE_HOME/ConsciaDesktop/` |
+| 下载的源码、编译中间文件 | `$XDG_CACHE_HOME/ConsciaDesktop/` |
 
 没有设置 XDG 变量时，分别使用 `~/.config`、`~/.local/share`、`~/.local/state`、`~/.cache`。
 构建完成后可以删除构建缓存；不要删除状态目录中的旧软件包和基线，回退、卸载需要它们。

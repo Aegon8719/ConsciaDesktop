@@ -1,5 +1,5 @@
 # Build from the ConsciaDesktop checkout; source trees live only in makepkg's BUILDDIR.
-pkgname=conscia-desktop
+pkgname=ConsciaDesktop
 _project=$(cd -- "$startdir/../.." && pwd)
 pkgver=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$_project/versions.lock")
 pkgrel=1
@@ -8,7 +8,7 @@ arch=('x86_64')
 url='https://github.com/Aegon8719/ConsciaDesktop'
 license=('GPL-3.0-or-later' 'MIT')
 provides=(niri dms-shell wayland-compositor)
-conflicts=(niri dms-shell)
+conflicts=(niri dms-shell conscia-desktop)
 depends=(quickshell matugen python gdk-pixbuf2 librsvg
          cairo glib2 glibc libdisplay-info libgcc libinput libpipewire libxkbcommon
          mesa pango pixman seatd systemd-libs
