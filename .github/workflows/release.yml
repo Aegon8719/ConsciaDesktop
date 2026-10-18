@@ -42,14 +42,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
+      - name: Check for an existing release
+        id: existing
+        run: |
+          tags=$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name')
+          if grep -Fxq -- "$GITHUB_REF_NAME" <<< "$tags"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Release $GITHUB_REF_NAME already exists; keeping its assets unchanged." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/download-artifact@v4
+        if: steps.existing.outputs.skip != 'true'
         with:
           name: ConsciaDesktop-Arch-x86_64
           path: dist
       - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+        if: steps.existing.outputs.skip != 'true'
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
