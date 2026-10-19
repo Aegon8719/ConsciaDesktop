@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "2026.10.18.1",
+  "version": "2026.10.19.1",
   "niri": {
     "repository": "https://github.com/Aegon8719/niri.git",
     "revision": "3fbf0add9939520b8559800038054c4d86867939"

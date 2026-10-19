@@ -51,10 +51,47 @@ Server = file://$stage/repo
 EOF
 mapfile -t targets < targets.txt
 # This configuration has no network repositories or mirrorlists.
-sudo pacman --config "$config" -U --needed --noconfirm "$stage"/repo/archlinux-keyring-*.pkg.tar.zst
-sudo pacman --config "$config" -Sy --needed --noconfirm "${targets[@]}"
-sudo pacman --config "$config" -U --needed --noconfirm greeter/*.pkg.tar.zst
-exec_args=(python3 "$bundle/scripts/manage.py" "$action" --offline --package)
+sudo pacman --config "$config" -Sy --noconfirm
+missing_dependencies() {
+    local status=0
+    pacman -T "$@" || status=$?
+    # pacman -T returns 127 when it prints unsatisfied dependencies.
+    if [[ $status != 0 && $status != 127 ]]; then
+        echo '无法读取系统依赖状态，安装已停止。' >&2
+        return "$status"
+    fi
+}
+missing=$(missing_dependencies "${targets[@]}")
+if [[ -n $missing ]]; then
+    mapfile -t missing_targets <<< "$missing"
+    if ! plan=$(sudo pacman --config "$config" -Sp --needed --noconfirm --print-format '%n' "${missing_targets[@]}"); then
+        echo '离线依赖无法与当前系统兼容。请使用匹配当前基础系统的安装包；不会强制降级或跳过依赖检查。' >&2
+        exit 1
+    fi
+    # Inspect the entire dependency closure, not only the explicitly requested packages.
+    installed_packages=$(pacman -Qq)
+    blocked=()
+    while IFS= read -r package; do
+        [[ -n $package ]] || continue
+        if grep -Fxq -- "$package" <<< "$installed_packages"; then
+            blocked+=("$package")
+        fi
+    done <<< "$plan"
+    if (( ${#blocked[@]} )); then
+        printf '离线依赖需要替换已有系统包，已停止：%s\n' "${blocked[*]}" >&2
+        echo '请使用与当前系统库兼容的安装包。安装器不会升级或降级这些系统包。' >&2
+        exit 1
+    fi
+    sudo pacman --config "$config" -S --needed --asdeps --noconfirm "${missing_targets[@]}"
+else
+    echo '系统已满足桌面依赖，直接复用现有软件包。'
+fi
+# Reuse an installed greeter, including packages providing the same capability.
+missing_greeter=$(missing_dependencies dms-greeter)
+if [[ -n $missing_greeter ]]; then
+    sudo pacman --config "$config" -U --needed --noconfirm greeter/*.pkg.tar.zst
+fi
+exec_args=(python3 "$bundle/scripts/manage.py" "$action" --offline --pacman-config "$config" --package)
 "${exec_args[@]}" "$bundle"/desktop/ConsciaDesktop-*.pkg.tar.zst
 if [[ $action == install ]]; then
     sudo systemctl enable NetworkManager.service

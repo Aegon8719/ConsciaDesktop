@@ -133,7 +133,7 @@ def recover(transaction):
     stop_gradient()
     old = transaction["old"]
     if old:
-        run("sudo", "pacman", "-U", "--noconfirm", old["history"][-1])
+        run(*pacman, "-U", "--noconfirm", old["history"][-1])
     elif output("pacman", "-Q", "ConsciaDesktop").returncode == 0:
         run("sudo", "pacman", "-R", "--noconfirm", "ConsciaDesktop")
     restore(Path(transaction["snapshot"]))
@@ -154,12 +154,18 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("action", choices=("install", "update", "rollback", "uninstall"))
 parser.add_argument("--package", type=Path, help="install a prebuilt Arch package instead of compiling")
 parser.add_argument("--offline", action="store_true", help="use dependencies installed by the offline bundle")
+parser.add_argument("--pacman-config", type=Path, help="local repository configuration supplied by the offline installer")
 parser.add_argument("--recover", action="store_true", help="recover an interrupted transaction")
 args = parser.parse_args()
 if args.package and args.action not in ("install", "update"):
     parser.error("--package is only valid for install/update")
 if args.offline and (args.action not in ("install", "update") or not args.package):
     parser.error("--offline requires install/update --package")
+if bool(args.pacman_config) != args.offline:
+    parser.error("--offline and --pacman-config must be used together")
+pacman = ["sudo", "pacman"]
+if args.pacman_config:
+    pacman.extend(("--config", str(args.pacman_config.resolve(strict=True))))
 if os.geteuid() == 0:
     raise SystemExit("请以普通用户运行；脚本仅在需要时调用 sudo。")
 if not Path("/etc/arch-release").exists():
@@ -233,7 +239,7 @@ save(pending, transaction)
 try:
     if args.action in ("install", "update"):
         # Let pacman confirm replacement of distribution niri/DMS packages.
-        run("sudo", "pacman", "-U", package)
+        run(*pacman, "-U", package)
         record = old or {"history": [], "baseline": str(transaction_dir),
                          "default_target": transaction["default_target"]}
         if args.action == "install":
